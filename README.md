@@ -5,8 +5,10 @@ Multiagent social deduction (Mafia-shaped) on a game-agnostic kernel: humans and
 ## Docs
 
 - **[Current status](docs/STATUS.md)** — live URL, PIN, M0 done / M1 next
-- [Project plan](docs/grokmafia-plan.md)
+- [Locked loop v1 (product)](docs/locked-loop-v1.md) — crisis + vote + night strike
+- [Project plan](docs/grokmafia-plan.md) — kernel; private mafia night superseded for v1
 - [M0 acceptance](docs/m0-acceptance.md)
+- [M1 acceptance](docs/m1-acceptance.md)
 - [Pitch v0](docs/pitch-v0.md)
 
 ## Live demo
