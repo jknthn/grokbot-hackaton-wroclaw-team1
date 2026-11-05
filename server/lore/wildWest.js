@@ -1,4 +1,6 @@
-/** Wild West lore name + persona pool for TownRules start deal. */
+/** Wild West lore name + persona pool. */
+
+const { makeDeal } = require("./deal");
 
 const ENTRIES = [
   { name: "Ada Colt", persona: "A sharp-eyed card dealer who trusts few and watches the door." },
@@ -19,23 +21,9 @@ const ENTRIES = [
   { name: "Pete Lang", persona: "A greenhorn cowboy trying to sound local." },
 ];
 
-function shuffle(list) {
-  const arr = [...list];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-function deal(count) {
-  const n = Math.max(0, Number(count) || 0);
-  if (n > ENTRIES.length) {
-    const err = new Error("not enough lore names");
-    err.code = "LORE_SHORT";
-    throw err;
-  }
-  return shuffle(ENTRIES).slice(0, n);
-}
-
-module.exports = { ENTRIES, deal, theme: "wildWest", themeLabel: "Wild West" };
+module.exports = {
+  theme: "wildWest",
+  themeLabel: "Wild West",
+  ENTRIES,
+  deal: makeDeal(ENTRIES),
+};

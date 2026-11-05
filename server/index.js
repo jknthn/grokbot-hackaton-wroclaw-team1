@@ -42,11 +42,11 @@ function pushAll() {
 
 room.onUpdate(pushAll);
 
-function withPlayer(socket, fn) {
+async function withPlayer(socket, fn) {
   const playerId = socketPlayers.get(socket.id);
   if (!playerId) return;
   try {
-    fn(playerId);
+    await fn(playerId);
   } catch (err) {
     socket.emit("error_msg", {
       error: err.code || "FAILED",
@@ -192,6 +192,12 @@ io.on("connection", (socket) => {
   socket.on("setAlive", (payload = {}) => {
     withPlayer(socket, (playerId) => {
       room.setAlive(playerId, payload.seatId, payload.alive);
+    });
+  });
+
+  socket.on("setTheme", (payload = {}) => {
+    withPlayer(socket, (playerId) => {
+      room.setTheme(playerId, payload.theme);
     });
   });
 

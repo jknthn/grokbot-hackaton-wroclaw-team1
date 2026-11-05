@@ -28,7 +28,10 @@
  * @property {(room: RoomState, player: Player) => void} [onJoin]
  * @property {(room: RoomState) => void} [onReset] Host resetGame/resetRoom: clear rules round state (tokens, votes, etc.)
  * @property {(room: RoomState) => void} [onStartGame] Deal lore, theme; room then shuffles seats
+ * @property {(room: RoomState, prev: string, next: string) => void} [onPhaseChange]
+ * @property {(room: RoomState, revealed: Array<{ fromSeat: number, name: string, text: string, ts: number }>) => void|Promise<void>} [onCloseWindow]
  * @property {(room: RoomState) => object} [lobbySummary]
+ * @property {(room: RoomState) => object} [viewMeta] Soft game meta (city points, crisis prompt, …)
  * @property {(player: Player, channel: string, room: RoomState) => boolean} canSay
  * @property {(player: Player, type: string, room: RoomState) => boolean} canAct
  * @property {(player: Player, type: string, room: RoomState) => boolean} [canAdmin]

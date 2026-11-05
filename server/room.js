@@ -187,6 +187,32 @@ function createRoom(rules, options = {}) {
     return pairIds.size;
   }
 
+  function setTheme(hostId, themeId) {
+    const host = requireHost(hostId);
+    if (!canAdmin(host, "setTheme")) {
+      const err = new Error("cannot set theme now");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    if (room.phase !== "lobby") {
+      const err = new Error("lobby closed");
+      err.code = "NOT_LOBBY";
+      throw err;
+    }
+    const themes =
+      typeof rules.themes === "function" ? rules.themes() : [];
+    const id = String(themeId || "").trim();
+    if (!themes.some((t) => t.id === id)) {
+      const err = new Error("unknown theme");
+      err.code = "BAD_THEME";
+      throw err;
+    }
+    if (!room.meta) room.meta = {};
+    room.meta.selectedTheme = id;
+    emitUpdate();
+    return id;
+  }
+
   function startGame(hostId) {
     const host = requireHost(hostId);
     if (!canAdmin(host, "startGame")) {
@@ -319,7 +345,11 @@ function createRoom(rules, options = {}) {
       err.code = "BAD_PHASE";
       throw err;
     }
+    const prev = room.phase;
     room.phase = phase;
+    if (typeof rules.onPhaseChange === "function") {
+      rules.onPhaseChange(room, prev, phase);
+    }
     emitUpdate();
   }
 
@@ -346,7 +376,7 @@ function createRoom(rules, options = {}) {
     return room.window;
   }
 
-  function closeWindow(hostId, opts = {}) {
+  async function closeWindow(hostId, opts = {}) {
     const host = requireHost(hostId);
     if (!canAdmin(host, "closeWindow")) {
       const err = new Error("cannot close window now");
@@ -359,19 +389,25 @@ function createRoom(rules, options = {}) {
       throw err;
     }
     const reveal = opts.reveal !== false;
+    const revealed = [];
     if (reveal) {
       const drafts = [...room.window.drafts.entries()].sort((a, b) => a[0] - b[0]);
       const ts = Date.now();
       for (const [seatId, draft] of drafts) {
-        room.channels.public.push({
+        const msg = {
           fromSeat: seatId,
           name: draft.name,
           text: draft.text,
           ts,
-        });
+        };
+        room.channels.public.push(msg);
+        revealed.push(msg);
       }
     }
     room.window = null;
+    if (typeof rules.onCloseWindow === "function") {
+      await rules.onCloseWindow(room, revealed);
+    }
     emitUpdate();
   }
 
@@ -521,6 +557,7 @@ function createRoom(rules, options = {}) {
     joinBot,
     joinPair,
     announce,
+    setTheme,
     startGame,
     handleSay,
     handleAct,

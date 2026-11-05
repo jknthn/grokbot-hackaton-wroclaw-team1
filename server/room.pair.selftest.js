@@ -17,20 +17,34 @@ const humanViewLobby = room.viewFor(human.id);
 assert.ok(!("kind" in humanViewLobby.you));
 assert.ok(humanViewLobby.seats.every((s) => !("kind" in s)));
 assert.ok(humanViewLobby.allowed.admin.includes("startGame"));
-assert.ok(!humanViewLobby.allowed.admin.includes("addBot"));
+assert.ok(humanViewLobby.allowed.admin.includes("setTheme"));
+assert.ok(humanViewLobby.allowed.admin.includes("addBot"));
 assert.strictEqual(humanViewLobby.lobby.pairs, 1);
+assert.ok(humanViewLobby.lobby.themes.length >= 4);
+
+const filler = room.addBot(human.id, { name: "Extra" });
+assert.strictEqual(filler.kind, "bot");
+assert.strictEqual(room.players.size, 3);
 
 const second = room.joinPair({ name: "Sam", pin: "4821" });
-assert.strictEqual(room.players.size, 4);
+assert.strictEqual(room.players.size, 5);
 assert.strictEqual(room.viewFor(human.id).lobby.pairs, 2);
+
+room.setTheme(human.id, "spaceColony");
+assert.strictEqual(room.meta.selectedTheme, "spaceColony");
+assert.throws(
+  () => room.setTheme(human.id, "nope"),
+  (err) => err.code === "BAD_THEME"
+);
 
 const seatsBefore = [...room.players.values()].map((p) => p.seatId).sort((a, b) => a - b);
 const idsBefore = [...room.players.values()].map((p) => p.id).sort();
 
 room.startGame(human.id);
 assert.strictEqual(room.phase, "talk");
-assert.strictEqual(room.meta.theme, "wildWest");
-assert.ok(room.channels.public.some((m) => m.name === "Town"));
+assert.strictEqual(room.meta.theme, "spaceColony");
+assert.strictEqual(room.meta.themeLabel, "Space Colony");
+assert.ok(room.channels.public.some((m) => m.name === "Town" && /Space Colony/.test(m.text)));
 
 const names = [...room.players.values()].map((p) => p.name);
 assert.strictEqual(new Set(names).size, names.length);

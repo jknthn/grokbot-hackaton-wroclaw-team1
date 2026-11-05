@@ -9,6 +9,7 @@ const ADMIN_TYPES = [
   "resetGame",
   "resetRoom",
   "startGame",
+  "setTheme",
 ];
 
 function getView(room, playerId) {
@@ -90,6 +91,10 @@ function getView(room, playerId) {
 
   if (typeof rules.lobbySummary === "function") {
     view.lobby = rules.lobbySummary(room);
+  }
+
+  if (typeof rules.viewMeta === "function") {
+    view.meta = rules.viewMeta(room);
   }
 
   if (player.kind === "bot") {

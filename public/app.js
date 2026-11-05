@@ -8,10 +8,12 @@
   const joinError = document.getElementById("join-error");
   const gameError = document.getElementById("game-error");
   const phaseLabel = document.getElementById("phase-label");
+  const cityPoints = document.getElementById("city-points");
   const youLabel = document.getElementById("you-label");
   const hostControls = document.getElementById("host-controls");
   const phaseButtons = document.getElementById("phase-buttons");
   const startGameBtn = document.getElementById("start-game-btn");
+  const themeButtons = document.getElementById("theme-buttons");
   const openWindowBtn = document.getElementById("open-window-btn");
   const closeWindowBtn = document.getElementById("close-window-btn");
   const addBotBtn = document.getElementById("add-bot-btn");
@@ -152,7 +154,8 @@
   });
 
   startGameBtn.addEventListener("click", () => {
-    if (!window.confirm("Start the town? Lore names deal and the lobby closes.")) return;
+    const label = view?.lobby?.selectedThemeLabel || "the town";
+    if (!window.confirm(`Start under ${label}? Lore names deal and the lobby closes.`)) return;
     socket.emit("startGame");
   });
 
@@ -219,6 +222,7 @@
     });
 
     const canStart = admin.includes("startGame");
+    const canSetTheme = admin.includes("setTheme");
     startGameBtn.hidden = !canStart;
     startGameBtn.disabled = !canStart;
     openWindowBtn.disabled = !admin.includes("openWindow") || Boolean(view.window?.open);
@@ -228,9 +232,31 @@
     resetGameBtn.disabled = !admin.includes("resetGame");
     resetRoomBtn.disabled = !admin.includes("resetRoom");
 
+    themeButtons.innerHTML = "";
+    const themes = view.lobby?.themes || [];
+    if (canSetTheme && themes.length) {
+      themeButtons.hidden = false;
+      themes.forEach((theme) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = theme.label.toUpperCase();
+        btn.className =
+          view.lobby.selectedTheme === theme.id ? "is-active" : "";
+        btn.addEventListener("click", () => {
+          socket.emit("setTheme", { theme: theme.id });
+        });
+        themeButtons.appendChild(btn);
+      });
+    } else {
+      themeButtons.hidden = true;
+    }
+
     if (view.lobby && view.phase === "lobby") {
       lobbyStatus.hidden = false;
-      lobbyStatus.textContent = `${view.lobby.pairs} pair(s) · ${view.lobby.seats} seats — START when ready`;
+      const themeBit = view.lobby.selectedThemeLabel
+        ? ` · ${view.lobby.selectedThemeLabel}`
+        : "";
+      lobbyStatus.textContent = `${view.lobby.pairs} pair(s) · ${view.lobby.seats} seats${themeBit} — pick theme, then START`;
     } else if (view.lobby?.theme) {
       lobbyStatus.hidden = false;
       lobbyStatus.textContent = `Theme: ${view.lobby.theme}`;
@@ -254,17 +280,38 @@
     const deadTag = view.you.alive ? "" : " · DEAD";
     youLabel.textContent = `${view.you.name} · #${view.you.seatId}${view.you.host ? " · HOST" : ""}${deadTag}`;
 
+    const started = Boolean(view.lobby?.started) || (view.phase && view.phase !== "lobby");
+    if (cityPoints) {
+      if (view.meta && started) {
+        cityPoints.hidden = false;
+        const slow = view.meta.slowdown ? ` · ${String(view.meta.slowdown).toUpperCase()}` : "";
+        cityPoints.textContent = `CITY PTS: ${view.meta.cityPoints ?? 0}${slow}`;
+      } else {
+        cityPoints.hidden = true;
+      }
+    }
+
     renderHostStrip();
 
     const windowOpen = Boolean(view.window?.open);
+    const isCrisis = view.phase === "crisis";
     chatWrap.classList.toggle("is-sealed", windowOpen);
     windowBanner.hidden = !windowOpen;
     if (windowOpen) {
-      windowStatus.textContent = view.window.youSubmitted
-        ? "You’re in — waiting on the table"
-        : "Blind write open";
+      if (isCrisis) {
+        windowStatus.textContent = view.window.youSubmitted
+          ? "Crisis answer in — waiting on the table"
+          : "Crisis answer — others see the count";
+      } else {
+        windowStatus.textContent = view.window.youSubmitted
+          ? "You’re in — waiting on the table"
+          : "Blind write open";
+      }
       windowCount.textContent = `${view.window.submitted} submitted`;
       submitInput.maxLength = view.window.maxLen || 160;
+      submitInput.placeholder = isCrisis
+        ? "Answer the crisis…"
+        : "Blind line — others can’t see this yet…";
     }
 
     const n = Math.max(view.seats.length, 1);
