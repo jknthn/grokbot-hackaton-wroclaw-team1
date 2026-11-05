@@ -102,4 +102,78 @@ function getView(room, playerId) {
   return view;
 }
 
-module.exports = { getView };
+/**
+ * TV / spectator broadcast — public fog of war only.
+ * No kind, no drafts, no shadow channel, no per-seat private meta.
+ */
+function getStreamView(room) {
+  const rules = room.rules;
+  const spectator = {
+    id: "stream",
+    name: "STREAM",
+    seatId: -1,
+    kind: "human",
+    host: false,
+    alive: true,
+    tags: [],
+    meta: {},
+  };
+
+  const living = [...room.players.values()].filter((p) => p.alive);
+  const seats = [...room.players.values()]
+    .sort((a, b) => a.seatId - b.seatId)
+    .map((seatPlayer) => {
+      const raw = rules.publicSeatFields(spectator, seatPlayer);
+      return {
+        seatId: raw.seatId,
+        name: raw.name,
+        alive: Boolean(raw.alive),
+      };
+    });
+
+  let windowView = null;
+  if (room.window) {
+    windowView = {
+      open: true,
+      maxLen: room.window.maxLen,
+      submitted: room.window.drafts.size,
+      living: living.length,
+    };
+  }
+
+  const view = {
+    mode: "stream",
+    phase: room.phase,
+    phases: rules.phases(),
+    seats,
+    channels: {
+      public: room.channels.public ? [...room.channels.public] : [],
+    },
+    window: windowView,
+  };
+
+  if (typeof rules.lobbySummary === "function") {
+    view.lobby = rules.lobbySummary(room);
+  }
+
+  if (typeof rules.viewMeta === "function") {
+    const meta = rules.viewMeta(room, null) || {};
+    view.meta = {
+      cityPoints: Number(meta.cityPoints) || 0,
+      slowdown: meta.slowdown ?? null,
+      crisisPrompt: meta.crisisPrompt ?? null,
+      talkPrompt: meta.talkPrompt ?? null,
+      winner: meta.winner ?? null,
+      votesCast: Number(meta.votesCast) || 0,
+      votesNeeded: Number(meta.votesNeeded) || living.length,
+      guide: meta.guide || null,
+      lastTown: meta.lastTown ?? null,
+      livingCount: Number(meta.livingCount) || living.length,
+      nightStage: meta.nightStage ?? null,
+    };
+  }
+
+  return view;
+}
+
+module.exports = { getView, getStreamView };

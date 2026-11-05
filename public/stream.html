@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>THE CLUB — LIVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/stream.css" />
+  </head>
+  <body class="stream-body">
+    <div class="stream-shell">
+      <header class="stream-top">
+        <div class="stream-brand">
+          <span class="live-pill" aria-hidden="true">● LIVE</span>
+          <strong class="stream-title">THE CLUB</strong>
+          <span id="stream-theme" class="stream-theme muted"></span>
+        </div>
+        <div class="stream-hud">
+          <strong id="stream-phase" class="phase-hud">LOBBY</strong>
+          <span id="stream-points" class="city-points" hidden>CITY PTS: 0</span>
+          <span id="stream-seats" class="muted"></span>
+        </div>
+      </header>
+
+      <div id="stream-banner" class="now-banner stream-banner">
+        <strong id="stream-action">WAITING</strong>
+        <span id="stream-detail">Open this on the projector. Players join from the main URL.</span>
+      </div>
+
+      <main class="stream-main">
+        <section class="stream-table-wrap">
+          <div id="stream-table" class="table stream-table" aria-label="Seats"></div>
+          <p id="stream-window" class="stream-window" hidden></p>
+        </section>
+        <section class="stream-chat-wrap">
+          <h2 class="stream-chat-label">TOWN RECORD</h2>
+          <div id="stream-chat" class="chat stream-chat"></div>
+        </section>
+      </main>
+
+      <footer class="stream-foot muted">
+        Demo feed · no player controls · kind stays hidden
+      </footer>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/stream.js"></script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 const { EventEmitter } = require("events");
 const { randomUUID } = require("crypto");
-const { getView } = require("./views");
+const { getView, getStreamView } = require("./views");
 
 function createRoom(rules, options = {}) {
   const joinPin = String(options.joinPin ?? process.env.JOIN_PIN ?? "4821");
@@ -695,6 +695,10 @@ function createRoom(rules, options = {}) {
     return getView(room, playerId);
   }
 
+  function streamView() {
+    return getStreamView(room);
+  }
+
   function onUpdate(fn) {
     room._bus.on("update", fn);
     return () => room._bus.off("update", fn);
@@ -729,6 +733,7 @@ function createRoom(rules, options = {}) {
     resetRoom,
     resume,
     viewFor,
+    streamView,
     onUpdate,
     get phase() {
       return room.phase;
