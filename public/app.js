@@ -16,6 +16,7 @@
   const readyBtn = document.getElementById("ready-btn");
 
   let view = null;
+  let lastPhase = null;
 
   function showError(el, msg) {
     if (!msg) {
@@ -74,23 +75,41 @@
     socket.emit("act", { type: "ready", payload: {} });
   });
 
+  function phaseHud(phase) {
+    return String(phase || "lobby").toUpperCase();
+  }
+
+  function shortName(name) {
+    const s = String(name || "?").trim();
+    if (s.length <= 8) return s;
+    return s.slice(0, 7) + "…";
+  }
+
   function render() {
     if (!view) return;
     showError(gameError, "");
-    phaseLabel.textContent = `Phase: ${view.phase}`;
-    youLabel.textContent = `${view.you.name} · seat ${view.you.seatId}${view.you.host ? " · host" : ""}`;
+    const hud = phaseHud(view.phase);
+    phaseLabel.textContent = hud;
+    if (lastPhase !== null && lastPhase !== view.phase) {
+      phaseLabel.classList.remove("is-live");
+      void phaseLabel.offsetWidth;
+      phaseLabel.classList.add("is-live");
+    }
+    lastPhase = view.phase;
+    youLabel.textContent = `${view.you.name} · #${view.you.seatId}${view.you.host ? " · HOST" : ""}`;
     hostControls.hidden = !view.allowed.setPhase;
 
     const n = Math.max(view.seats.length, 1);
     table.innerHTML = "";
     view.seats.forEach((seat, i) => {
       const el = document.createElement("div");
+      // keep kind class for future rules; CSS hides kind label in-game
       el.className = `seat ${seat.kind}${seat.seatId === view.you.seatId ? " you" : ""}`;
       const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
       const r = 38;
       el.style.left = `${50 + r * Math.cos(angle)}%`;
       el.style.top = `${50 + r * Math.sin(angle)}%`;
-      el.innerHTML = `<span>${escapeHtml(seat.name)}</span><span class="kind">${seat.kind}</span>`;
+      el.innerHTML = `<span>${escapeHtml(shortName(seat.name))}</span><span class="kind">${escapeHtml(seat.kind)}</span>`;
       table.appendChild(el);
     });
 

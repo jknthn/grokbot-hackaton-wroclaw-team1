@@ -31,7 +31,8 @@ Optional: set `GROK_API_KEY` in Render → Environment for live Grok lines.
 
 ## Parallel / non-blocking
 
-- [UI guidelines](ui-guidelines.md) — pixel town hall direction for a later CSS pass; does not block M1.
+- [UI guidelines](ui-guidelines.md) — pixel town hall direction.
+- Pixel skin applied to `public/` (join + table + HUD); does not block M1.
 
 ## What is not done yet (Milestone 1)
 

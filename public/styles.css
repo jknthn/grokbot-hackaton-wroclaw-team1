@@ -1,69 +1,97 @@
 :root {
-  --bg: #1a1520;
-  --bg2: #241c2c;
-  --ink: #f3eef7;
-  --muted: #a898b0;
-  --accent: #e8a45a;
-  --seat: #3a2f45;
-  --bot: #4a6fa5;
-  --human: #5a8f6a;
-  --line: #3d3348;
-  --danger: #e07070;
-  --radius: 14px;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --bg: #0d1118;
+  --panel: #1a2332;
+  --ink: #e8f0ff;
+  --muted: #7a8aa0;
+  --accent: #f0b429;
+  --danger: #e84c4c;
+  --human: #3d9a6a;
+  --bot: #4a7fd4;
+  --line: #2a3548;
+  --seat: #243044;
+  --shadow: #05070c;
+  --font-display: "Press Start 2P", monospace;
+  --font-body: "VT323", monospace;
 }
 
 * {
   box-sizing: border-box;
+  image-rendering: pixelated;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  background:
-    radial-gradient(ellipse at 20% 0%, #3a2840 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 100%, #2a2038 0%, transparent 45%),
-    var(--bg);
+  font-family: var(--font-body);
+  font-size: 22px;
+  line-height: 1.25;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(13, 17, 24, 0.92), rgba(13, 17, 24, 0.92)),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(255, 255, 255, 0.02) 3px,
+      rgba(255, 255, 255, 0.02) 4px
+    ),
+    radial-gradient(circle at 50% 0%, #1a2838 0%, var(--bg) 55%);
 }
 
 .panel,
 .game {
   max-width: 960px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
 
 .join {
-  margin-top: 12vh;
+  margin-top: 10vh;
   display: grid;
-  gap: 0.75rem;
-  max-width: 360px;
+  gap: 0.85rem;
+  max-width: 420px;
+  padding: 1.25rem;
+  background: var(--panel);
+  border: 4px solid var(--line);
+  box-shadow: 6px 6px 0 var(--shadow);
 }
 
 .join h1 {
   margin: 0;
-  font-size: 2.4rem;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 4vw, 1.35rem);
+  line-height: 1.45;
   color: var(--accent);
+  text-shadow: 3px 3px 0 var(--shadow);
 }
 
 .sub {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.35rem;
   color: var(--muted);
+  font-size: 1.15rem;
 }
 
 label {
   display: grid;
   gap: 0.35rem;
-  font-size: 0.9rem;
+  font-family: var(--font-display);
+  font-size: 0.55rem;
   color: var(--muted);
+  letter-spacing: 0.04em;
 }
 
 label.check {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
+  font-size: 0.5rem;
+}
+
+input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
 }
 
 input[type="text"],
@@ -72,44 +100,60 @@ input[type="password"],
 #pin,
 #name,
 #say-input {
-  padding: 0.65rem 0.75rem;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg2);
+  padding: 0.55rem 0.65rem;
+  border: 3px solid var(--line);
+  border-radius: 0;
+  background: var(--bg);
   color: var(--ink);
-  font: inherit;
+  font-family: var(--font-body);
+  font-size: 1.25rem;
+  box-shadow: inset 2px 2px 0 var(--shadow);
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 button {
-  font: inherit;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
   cursor: pointer;
-  border: none;
-  border-radius: 999px;
-  padding: 0.65rem 1.1rem;
+  border: 3px solid var(--shadow);
+  border-radius: 0;
+  padding: 0.75rem 1rem;
   background: var(--accent);
   color: #1a1208;
-  font-weight: 600;
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+
+button:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--shadow);
 }
 
 button.secondary {
-  background: transparent;
-  border: 1px solid var(--line);
+  background: var(--panel);
   color: var(--ink);
+  border-color: var(--line);
   margin-top: 0.5rem;
+  width: 100%;
 }
 
 button:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .host button {
-  background: var(--bg2);
+  background: var(--panel);
   color: var(--ink);
-  border: 1px solid var(--line);
-  margin-left: 0.35rem;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
+  border: 3px solid var(--line);
+  margin: 0.15rem;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.45rem;
+  box-shadow: 3px 3px 0 var(--shadow);
 }
 
 .bar {
@@ -119,24 +163,58 @@ button:disabled {
   gap: 1rem;
   margin-bottom: 1rem;
   flex-wrap: wrap;
+  padding: 0.75rem;
+  background: var(--panel);
+  border: 4px solid var(--line);
+  box-shadow: 5px 5px 0 var(--shadow);
+}
+
+.phase-hud {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  text-shadow: 2px 2px 0 var(--shadow);
+}
+
+.phase-hud.is-live {
+  animation: phase-blink 1.1s steps(2, end) 3;
+}
+
+@keyframes phase-blink {
+  50% {
+    color: var(--ink);
+  }
 }
 
 .muted {
   color: var(--muted);
   margin-left: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
 }
 
 .layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 @media (max-width: 720px) {
   .layout {
     grid-template-columns: 1fr;
   }
+
+  body {
+    font-size: 20px;
+  }
+}
+
+.table-wrap {
+  padding: 0.75rem;
+  background: var(--panel);
+  border: 4px solid var(--line);
+  box-shadow: 5px 5px 0 var(--shadow);
 }
 
 .table {
@@ -144,62 +222,110 @@ button:disabled {
   width: min(100%, 360px);
   aspect-ratio: 1;
   margin: 0 auto;
-  border-radius: 50%;
-  border: 2px solid var(--line);
+  border-radius: 0;
+  border: 4px solid var(--line);
   background:
-    radial-gradient(circle at 50% 50%, #2e2438 0%, #1e1826 70%);
+    repeating-linear-gradient(
+      45deg,
+      #152032,
+      #152032 8px,
+      #18263a 8px,
+      #18263a 16px
+    );
+  box-shadow: inset 0 0 0 3px var(--shadow);
+}
+
+.table::after {
+  content: "TABLE";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  color: rgba(122, 138, 160, 0.45);
+  letter-spacing: 0.12em;
+  pointer-events: none;
 }
 
 .seat {
   position: absolute;
-  width: 72px;
-  height: 72px;
-  margin: -36px 0 0 -36px;
-  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  margin: -35px 0 0 -35px;
+  border-radius: 0;
   display: grid;
   place-content: center;
   text-align: center;
-  font-size: 0.72rem;
-  line-height: 1.15;
+  font-family: var(--font-display);
+  font-size: 0.42rem;
+  line-height: 1.25;
   background: var(--seat);
-  border: 2px solid var(--line);
-  padding: 0.25rem;
+  border: 3px solid var(--line);
+  padding: 0.2rem;
+  box-shadow: 3px 3px 0 var(--shadow);
+  word-break: break-word;
 }
 
+/* Kind colors are style hooks only; default in-game UI hides kind text */
 .seat.human {
-  border-color: var(--human);
+  border-color: var(--line);
 }
 
 .seat.bot {
-  border-color: var(--bot);
+  border-color: var(--line);
 }
 
 .seat.you {
-  box-shadow: 0 0 0 3px var(--accent);
+  border-color: var(--accent);
+  box-shadow: 4px 4px 0 var(--accent);
+}
+
+.seat.flash {
+  animation: seat-flash 0.45s steps(2, end) 2;
+}
+
+@keyframes seat-flash {
+  50% {
+    background: var(--accent);
+    color: #1a1208;
+  }
 }
 
 .seat .kind {
-  display: block;
-  color: var(--muted);
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  display: none;
 }
 
 .hint {
   text-align: center;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 1rem;
+  margin: 0.75rem 0 0;
 }
 
 .chat-wrap {
   display: flex;
   flex-direction: column;
   min-height: 320px;
-  background: var(--bg2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  background: var(--panel);
+  border: 4px solid var(--line);
+  border-radius: 0;
   padding: 0.75rem;
+  box-shadow: 5px 5px 0 var(--shadow);
+}
+
+.chat-wrap.is-sealed {
+  border-color: var(--accent);
+}
+
+.chat-wrap.is-sealed::before {
+  content: "SEALED WINDOW";
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.45rem;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.06em;
 }
 
 .chat {
@@ -207,19 +333,21 @@ button:disabled {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.35rem;
   margin-bottom: 0.75rem;
   max-height: 360px;
+  background: var(--bg);
+  border: 3px solid var(--line);
+  padding: 0.5rem;
 }
 
 .msg {
-  font-size: 0.95rem;
+  font-size: 1.2rem;
 }
 
 .msg .who {
   color: var(--accent);
-  font-weight: 600;
-  margin-right: 0.35rem;
+  margin-right: 0.4rem;
 }
 
 .say {
@@ -234,6 +362,9 @@ button:disabled {
 .error {
   color: var(--danger);
   margin-top: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  line-height: 1.5;
 }
 
 [hidden] {

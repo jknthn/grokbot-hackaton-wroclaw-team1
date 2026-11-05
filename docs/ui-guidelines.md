@@ -1,6 +1,6 @@
 # UI guidelines — pixel town hall (non-blocking)
 
-**Status:** visual direction only (2026-11-05). Does **not** block Milestone 1 rules or the locked loop in `docs/locked-loop-v1.md`. Safe to land on `master` while gameplay docs evolve on other branches.
+**Status:** direction + first CSS pass on `master` (2026-11-05). Does **not** block Milestone 1 rules or the locked loop in `docs/locked-loop-v1.md`.
 
 ## Scope
 
