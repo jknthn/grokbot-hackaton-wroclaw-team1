@@ -7,7 +7,12 @@ const { createRoom } = require("./room");
 const { startBotPlayer } = require("./players/botPlayer");
 
 const PORT = Number(process.env.PORT || 3000);
-const HOST = process.env.HOST || "127.0.0.1";
+// Local default: localhost (pair with ngrok). Deploy/platforms: 0.0.0.0
+const HOST =
+  process.env.HOST ||
+  (process.env.NODE_ENV === "production" || process.env.RENDER || process.env.RAILWAY_ENVIRONMENT
+    ? "0.0.0.0"
+    : "127.0.0.1");
 const JOIN_PIN = process.env.JOIN_PIN || "4821";
 const AUTO_BOT = process.env.AUTO_BOT !== "0";
 
@@ -100,8 +105,11 @@ server.listen(PORT, HOST, () => {
   console.log("");
   console.log(`  Game kernel listening on http://${HOST}:${PORT}`);
   console.log(`  JOIN_PIN=${JOIN_PIN}`);
-  console.log("  Bind is localhost-only. For teammates use: ngrok http " + PORT);
-  console.log("  Share the ngrok HTTPS URL + JOIN_PIN. Stop ngrok when done.");
+  if (HOST === "127.0.0.1") {
+    console.log("  Local bind. Teammates: ngrok http " + PORT + " — or deploy (see README).");
+  } else {
+    console.log("  Public bind. Share this service URL + JOIN_PIN with players.");
+  }
   console.log("");
 });
 

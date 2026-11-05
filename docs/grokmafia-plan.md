@@ -280,46 +280,25 @@ Swap `sandbox.js` → `mafia.js`; add tagged channel + `act:"vote"`; second bot 
 - **C:** copy + pitch + recruit  
 - **D (optional):** checklist + break things + record  
 
-## Sharing the server (secure-ish join via ngrok)
+## Sharing the server (deploy preferred; ngrok fallback)
 
-**Locked: ngrok as the way others join** — keeps the game off the open LAN and avoids router port-forwarding. Host machine only listens locally; ngrok is the sole public door.
+**Preferred: deploy** (Render Blueprint / Railway / Docker) with `HOST=0.0.0.0`, HTTPS URL + `JOIN_PIN`. Grok works via `GROK_API_KEY` on any host — xAI does not host the app for you.
 
-**Why ngrok for machine safety (hackathon-grade, not bank-grade)**
-- Node binds **`127.0.0.1:3000` only** → other devices on venue WiFi cannot hit your ports directly.
-- No router port-forward; outbound tunnel only.
-- Ephemeral HTTPS URL; stop ngrok = door closes.
-- Still: **anyone with the URL can load the app** — add a join PIN so random scanners are useless even if the URL leaks in a photo.
+**Fallback: ngrok** — local `127.0.0.1` + `ngrok http 3000` if deploy is blocked.
 
-| Layer | What we do |
-|-------|------------|
-| Bind | `127.0.0.1:3000` in tunnel mode (default) |
-| Edge | `ngrok http 3000` (authed ngrok account) |
-| App | Shared **room PIN** (e.g. 4–6 digits) required on `join`; reject wrong PIN |
-| Ops | Share URL+PIN only in team chat / verbally; restart ngrok if URL leaks; Ctrl+C ngrok when demo ends |
-| Optional ngrok | Traffic IP restrictions / basic auth if the free/paid plan on hand supports it in &lt;5 min — nice, not required if PIN exists |
+| Layer | Deploy | Local + ngrok |
+|-------|--------|----------------|
+| Bind | `0.0.0.0` | `127.0.0.1` |
+| Edge | Render/Railway HTTPS | ngrok HTTPS |
+| App | `JOIN_PIN` on join | same |
 
-**Do not use for M0:** `0.0.0.0` open LAN as the main join path (optional `HOST=0.0.0.0` escape hatch only for trusted offline LAN, off by default). Skip Tailscale unless already installed.
+**Socket.io:** relative `io()` — works on both.
 
-**Locked M0 approach**
-1. **A:** server default `listen(3000, "127.0.0.1")`; client `io()` relative; env `JOIN_PIN` (default e.g. `4821`) checked in `join`.
-2. **A or D:** install/login ngrok once; run `ngrok http 3000`; paste HTTPS URL + PIN to team.
-3. **D or C:** join from a phone using ngrok URL + PIN (M0 acceptance).
-4. Host browser can keep using `http://127.0.0.1:3000` without PIN friction optional (PIN still OK for consistency).
-
-**Socket.io note:** relative `io()` so ngrok hostname works. Allow ngrok browser warning interstitial once if it appears.
-
-**Acceptance**
-- [ ] Second device joins via **ngrok HTTPS URL + PIN** and appears as a seat
-- [ ] Wrong PIN is rejected; port `3000` is not reachable from another LAN device (spot-check)
-
-**Who owns it**
-- **A:** localhost bind + `JOIN_PIN` on join + boot log “use ngrok; do not open firewall”
-- **D (or C):** run ngrok, share URL+PIN, verify phone join
-- **B:** unaffected
+**Acceptance:** second device joins via **public URL + PIN** (deploy or ngrok).
 
 ## Suggested tech (fast)
 - Node + Express + Socket.io; BotPlayer in-process; one HTML page.
-- Join path: **localhost + ngrok + JOIN_PIN** (default). No open LAN / no port-forward.
+- Join path: **deploy + JOIN_PIN** (preferred) or localhost + ngrok.
 
 ## Challenges to name in pitch (don’t all fix)
 1. **Agent-agent agreement** at night (deadlock / both nominate different kills) → force majority or first-speaker rule after 30s.

@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: grokmafia-kernel
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: JOIN_PIN
+        generateValue: true
+      - key: AUTO_BOT
+        value: "1"
+      - key: BOT_NAME
+        value: Grok-1
+      - key: GROK_API_KEY
+        sync: false
