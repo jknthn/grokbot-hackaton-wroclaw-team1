@@ -28,7 +28,7 @@ const geo = {
   sphere: new THREE.SphereGeometry(1, 8, 6),
   cyl: new THREE.CylinderGeometry(1, 1, 1, 10),
   blob: new THREE.CircleGeometry(0.46, 14),
-  youRing: new THREE.TorusGeometry(0.38, 0.015, 6, 24),
+  youRing: new THREE.TorusGeometry(0.52, 0.028, 8, 32),
   speakerRing: new THREE.TorusGeometry(0.5, 0.022, 6, 28),
   voteRing: new THREE.TorusGeometry(0.6, 0.018, 6, 28),
 };
@@ -294,22 +294,35 @@ function drawLabel(label, text, mode) {
   const h = canvas.height;
   ctx.clearRect(0, 0, w, h);
   const dead = mode === "dead" || mode === "dead-vote";
-  const bg = mode === "speaker" ? "#e2b84a" : mode === "vote" || mode === "dead-vote" ? "#6e2430" : "#140e0a";
-  const edge =
-    mode === "speaker" ? "#fff4cc" : mode === "vote" || mode === "dead-vote" ? "#ffb4c0" : mode === "you" ? "#c9a227" : "#5a4030";
+  const you = mode === "you";
+  const bg = you
+    ? "#c9a227"
+    : mode === "speaker"
+      ? "#e2b84a"
+      : mode === "vote" || mode === "dead-vote"
+        ? "#6e2430"
+        : "#140e0a";
+  const edge = you
+    ? "#fff4cc"
+    : mode === "speaker"
+      ? "#fff4cc"
+      : mode === "vote" || mode === "dead-vote"
+        ? "#ffb4c0"
+        : "#5a4030";
   ctx.fillStyle = bg;
-  ctx.fillRect(8, 18, w - 16, h - 36);
+  ctx.fillRect(8, 12, w - 16, h - 24);
   ctx.strokeStyle = edge;
-  ctx.lineWidth = 8;
-  ctx.strokeRect(14, 24, w - 28, h - 48);
-  ctx.fillStyle = mode === "speaker" ? "#1a1008" : dead ? "#9a948c" : "#f5ecd9";
-  const name = String(text || "?").trim() || "?";
-  let size = 52;
+  ctx.lineWidth = you ? 10 : 8;
+  ctx.strokeRect(14, 18, w - 28, h - 36);
+  ctx.fillStyle = you || mode === "speaker" ? "#1a1008" : dead ? "#9a948c" : "#f5ecd9";
+  const raw = String(text || "?").trim() || "?";
+  const name = you ? `YOU · ${raw}` : raw;
+  let size = you ? 48 : 52;
   do {
-    ctx.font = `600 ${size}px Georgia, "Times New Roman", serif`;
+    ctx.font = `700 ${size}px Georgia, "Times New Roman", serif`;
     if (ctx.measureText(name).width <= w - 72) break;
     size -= 2;
-  } while (size > 18);
+  } while (size > 16);
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(name, w / 2, h / 2 + 2);
@@ -509,7 +522,7 @@ export function createTableScene(canvas, hooks = {}) {
     depthWrite: false,
   });
   blobMat.userData.noGrey = true;
-  const youRingMat = new THREE.MeshBasicMaterial({ color: 0xc9a227 });
+  const youRingMat = new THREE.MeshBasicMaterial({ color: 0xffe08a });
   const speakerRingMat = new THREE.MeshBasicMaterial({ color: 0xffe08a });
   const voteRingMat = new THREE.MeshBasicMaterial({ color: 0xc4364a });
   youRingMat.userData.noGrey = true;
@@ -938,6 +951,14 @@ export function createTableScene(canvas, hooks = {}) {
     rec.rings.you.visible = Boolean(rec.you);
     rec.rings.vote.visible = Boolean(rec.vote);
     rec.rings.speaker.visible = Boolean(rec.speaker && rec.alive);
+    if (rec.rings.you.visible) {
+      const pulse = 1.05 + Math.sin(t * 3.2) * 0.12;
+      rec.rings.you.scale.set(pulse, pulse, pulse);
+      rec.label.sprite.scale.set(1.15, 0.32, 1);
+    } else {
+      rec.rings.you.scale.set(1, 1, 1);
+      rec.label.sprite.scale.set(1, 0.28, 1);
+    }
     if (rec.rings.speaker.visible) {
       const pulse = 1 + Math.sin(t * 4.5) * 0.07;
       rec.rings.speaker.scale.set(pulse, pulse, pulse);

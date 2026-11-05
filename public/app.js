@@ -12,6 +12,9 @@
   const winGoal = document.getElementById("win-goal");
   const sideLabel = document.getElementById("side-label");
   const youLabel = document.getElementById("you-label");
+  const youCard = document.getElementById("you-card");
+  const youCardName = document.getElementById("you-card-name");
+  const youCardMeta = document.getElementById("you-card-meta");
   const shadowBanner = document.getElementById("shadow-banner");
   const shadowStatus = document.getElementById("shadow-status");
   const shadowCount = document.getElementById("shadow-count");
@@ -235,10 +238,15 @@
     view.seats.forEach((seat) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.textContent = seat.alive
-        ? `#${seat.seatId} ${shortName(seat.name)}`
-        : `#${seat.seatId} ${shortName(seat.name)} (out)`;
-      if (seat.seatId === view.you.seatId) btn.classList.add("is-you");
+      const mine = seat.seatId === view.you.seatId;
+      btn.textContent = mine
+        ? seat.alive
+          ? `YOU · #${seat.seatId} ${shortName(seat.name)}`
+          : `YOU · #${seat.seatId} (out)`
+        : seat.alive
+          ? `#${seat.seatId} ${shortName(seat.name)}`
+          : `#${seat.seatId} ${shortName(seat.name)} (out)`;
+      if (mine) btn.classList.add("is-you");
       if (
         selectedSeatId === seat.seatId ||
         (canVote && view.meta?.yourVoteTarget === seat.seatId)
@@ -491,18 +499,34 @@
     });
     document.body.classList.add(`phase-${String(view.phase || "lobby").toLowerCase()}`);
     const deadTag = view.you.alive ? "" : " · DEAD";
-    youLabel.textContent = `${view.you.name} · #${view.you.seatId}${view.you.host ? " · HOST" : ""}${deadTag}`;
+    youLabel.textContent = `YOU · ${view.you.name} · #${view.you.seatId}${deadTag}`;
+
+    if (youCard && youCardName && youCardMeta) {
+      youCard.hidden = false;
+      youCardName.textContent = view.you.name || "—";
+      const bits = [`SEAT #${view.you.seatId}`];
+      if (view.you.host) bits.push("HOST");
+      if (!view.you.alive) bits.push("OUT");
+      if (view.you.kind === "bot" && view.meta?.shadowLabel) {
+        bits.push(view.meta.shadowLabel);
+      } else if (view.you.kind === "human") {
+        bits.push("HUMAN");
+      } else if (view.you.kind === "bot") {
+        bits.push("BOT");
+      }
+      youCardMeta.textContent = bits.join(" · ");
+    }
 
     if (sideLabel) {
       if (view.you.kind === "human") {
         sideLabel.hidden = false;
-        sideLabel.textContent = "YOU ARE HUMAN";
+        sideLabel.textContent = "HUMAN";
         sideLabel.className = "side-label side-human";
       } else if (view.you.kind === "bot") {
         sideLabel.hidden = false;
         sideLabel.textContent = view.meta?.shadowLabel
-          ? `YOU ARE A BOT · ${view.meta.shadowLabel}`
-          : "YOU ARE A BOT";
+          ? `BOT · ${view.meta.shadowLabel}`
+          : "BOT";
         sideLabel.className = "side-label side-bot";
       } else {
         sideLabel.hidden = true;

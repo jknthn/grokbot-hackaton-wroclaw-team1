@@ -126,16 +126,69 @@ body::before {
   margin: 0;
   padding: 0.7rem;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 0.55rem;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 0.45rem;
   pointer-events: none;
   background: none;
 }
 
 .game > .bar,
+.game > .you-card,
 .game > .now-banner,
 .game > .error {
   pointer-events: auto;
+}
+
+.you-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(90deg, rgba(201, 162, 39, 0.28) 0%, rgba(26, 20, 16, 0.94) 55%);
+  border: 4px solid var(--accent);
+  box-shadow: 4px 4px 0 var(--shadow);
+  z-index: 3;
+}
+
+.you-card[hidden] {
+  display: none !important;
+}
+
+.you-card-kicker {
+  font-family: var(--font-display);
+  font-size: 0.42rem;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+
+.you-card strong {
+  font-family: var(--font-title);
+  font-size: clamp(1.35rem, 3.2vw, 1.9rem);
+  letter-spacing: 0.03em;
+  color: #f8efd4;
+  line-height: 1.05;
+}
+
+.you-card-meta {
+  font-family: var(--font-display);
+  font-size: 0.4rem;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  opacity: 0.9;
+}
+
+#you-label {
+  display: inline-block;
+  margin-left: 0.65rem;
+  padding: 0.2rem 0.45rem;
+  font-family: var(--font-display);
+  font-size: 0.42rem;
+  letter-spacing: 0.06em;
+  color: #1a1008;
+  background: var(--accent);
+  border: 2px solid #f3e6c0;
 }
 
 .join {
@@ -634,6 +687,14 @@ body.has-sealed-prompt .now-banner span {
 
   .bar {
     padding: 0.45rem 0.55rem;
+  }
+
+  .you-card {
+    padding: 0.45rem 0.6rem;
+  }
+
+  .you-card strong {
+    font-size: 1.25rem;
   }
 
   .now-banner {
