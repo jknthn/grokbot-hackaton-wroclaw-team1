@@ -3,6 +3,7 @@ const http = require("http");
 const express = require("express");
 const { Server } = require("socket.io");
 const sandbox = require("./rules/sandbox");
+const town = require("./rules/town");
 const { createRoom } = require("./room");
 const { startBotPlayer } = require("./players/botPlayer");
 
@@ -14,7 +15,9 @@ const HOST =
     ? "0.0.0.0"
     : "127.0.0.1");
 const JOIN_PIN = process.env.JOIN_PIN || "4821";
-const AUTO_BOT = process.env.AUTO_BOT !== "0";
+const USE_SANDBOX = process.env.RULES === "sandbox";
+const rules = USE_SANDBOX ? sandbox : town;
+const AUTO_BOT = USE_SANDBOX && process.env.AUTO_BOT !== "0";
 
 const app = express();
 const server = http.createServer(app);
@@ -22,7 +25,7 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, "..", "public")));
 
-const room = createRoom(sandbox, { joinPin: JOIN_PIN });
+const room = createRoom(rules, { joinPin: JOIN_PIN });
 /** @type {Map<string, string>} socket.id → playerId */
 const socketPlayers = new Map();
 /** @type {Array<{ stop: () => void, player?: { id: string } }>} */
@@ -98,12 +101,27 @@ function clearTableSockets() {
 io.on("connection", (socket) => {
   socket.on("join", (payload = {}, ack) => {
     try {
-      const player = room.join({
-        name: payload.name,
-        host: Boolean(payload.host),
-        pin: payload.pin,
-        kind: "human",
-      });
+      let player;
+      if (USE_SANDBOX) {
+        player = room.join({
+          name: payload.name,
+          host: Boolean(payload.host),
+          pin: payload.pin,
+          kind: "human",
+        });
+      } else {
+        const pair = room.joinPair({
+          name: payload.name,
+          host: Boolean(payload.host),
+          pin: payload.pin,
+        });
+        player = pair.human;
+        const handle = startBotPlayer(room, {
+          name: pair.bot.name,
+          existingPlayer: pair.bot,
+        });
+        botHandles.push(handle);
+      }
       bindSocket(socket, player);
       emitJoined(socket, player, ack);
     } catch (err) {
@@ -177,6 +195,12 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("startGame", () => {
+    withPlayer(socket, (playerId) => {
+      room.startGame(playerId);
+    });
+  });
+
   socket.on("resetGame", () => {
     withPlayer(socket, (playerId) => {
       room.resetGame(playerId);
@@ -203,6 +227,7 @@ seedAutoBot();
 server.listen(PORT, HOST, () => {
   console.log("");
   console.log(`  Game kernel listening on http://${HOST}:${PORT}`);
+  console.log(`  Rules: ${USE_SANDBOX ? "sandbox" : "town"}`);
   console.log(`  JOIN_PIN set (len=${String(JOIN_PIN).length}); always also accepts 4821`);
   if (HOST === "127.0.0.1") {
     console.log("  Local bind. Teammates: ngrok http " + PORT + " — or deploy (see README).");

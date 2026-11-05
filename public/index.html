@@ -14,13 +14,13 @@
   </head>
   <body>
     <div id="join-screen" class="panel join">
-      <p class="eyebrow">NORTH JERSEY · MEMBERS ONLY</p>
+      <p class="eyebrow">TOWN HALL · MEMBERS ONLY</p>
       <h1>THE CLUB</h1>
-      <p class="sub">Sit-down at the table. Watch what you say. Bring the pin.</p>
+      <p class="sub">One join seats you and your shadow. Lore names deal at START. Bring the pin.</p>
       <label>Name <input id="name" maxlength="24" placeholder="TONY" autocomplete="nickname" /></label>
       <label>Door code <input id="pin" maxlength="8" placeholder="4821" value="4821" autocomplete="off" /></label>
       <label class="check"><input type="checkbox" id="want-host" /> I’m running this sit-down (host)</label>
-      <button id="join-btn" type="button">COME IN</button>
+      <button id="join-btn" type="button">COME IN (YOU + SHADOW)</button>
       <p id="join-error" class="error" hidden></p>
     </div>
 
@@ -33,12 +33,14 @@
         <div id="host-controls" class="host" hidden>
           <div id="phase-buttons" class="host-row"></div>
           <div class="host-row">
+            <button type="button" id="start-game-btn">START</button>
             <button type="button" id="open-window-btn">OPEN WINDOW</button>
             <button type="button" id="close-window-btn">REVEAL</button>
             <button type="button" id="add-bot-btn">ADD BOT</button>
             <button type="button" id="reset-game-btn">RESET GAME</button>
             <button type="button" id="reset-room-btn">CLEAR TABLE</button>
           </div>
+          <p id="lobby-status" class="host-hint" hidden></p>
           <p id="host-hint" class="host-hint">Click a seat to kill / revive</p>
         </div>
       </header>
@@ -46,7 +48,7 @@
       <main class="layout">
         <section class="table-wrap">
           <div id="table" class="table" aria-label="Seats"></div>
-          <p class="hint">Nobody talking? Host opens <em>TALK</em>, then <em>OPEN WINDOW</em> for a blind round.</p>
+          <p class="hint">Lobby: wait for pairs. Host hits <em>START</em> for lore names, then <em>OPEN WINDOW</em> for blind talk.</p>
         </section>
         <section id="chat-wrap" class="chat-wrap">
           <div id="window-banner" class="window-banner" hidden>

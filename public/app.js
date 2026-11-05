@@ -11,11 +11,13 @@
   const youLabel = document.getElementById("you-label");
   const hostControls = document.getElementById("host-controls");
   const phaseButtons = document.getElementById("phase-buttons");
+  const startGameBtn = document.getElementById("start-game-btn");
   const openWindowBtn = document.getElementById("open-window-btn");
   const closeWindowBtn = document.getElementById("close-window-btn");
   const addBotBtn = document.getElementById("add-bot-btn");
   const resetGameBtn = document.getElementById("reset-game-btn");
   const resetRoomBtn = document.getElementById("reset-room-btn");
+  const lobbyStatus = document.getElementById("lobby-status");
   const table = document.getElementById("table");
   const chatWrap = document.getElementById("chat-wrap");
   const chat = document.getElementById("chat");
@@ -149,6 +151,11 @@
     socket.emit("closeWindow", { reveal: true });
   });
 
+  startGameBtn.addEventListener("click", () => {
+    if (!window.confirm("Start the town? Lore names deal and the lobby closes.")) return;
+    socket.emit("startGame");
+  });
+
   addBotBtn.addEventListener("click", () => {
     socket.emit("addBot", {});
   });
@@ -211,11 +218,26 @@
       phaseButtons.appendChild(btn);
     });
 
+    const canStart = admin.includes("startGame");
+    startGameBtn.hidden = !canStart;
+    startGameBtn.disabled = !canStart;
     openWindowBtn.disabled = !admin.includes("openWindow") || Boolean(view.window?.open);
     closeWindowBtn.disabled = !admin.includes("closeWindow") || !view.window?.open;
+    addBotBtn.hidden = !admin.includes("addBot");
     addBotBtn.disabled = !admin.includes("addBot");
     resetGameBtn.disabled = !admin.includes("resetGame");
     resetRoomBtn.disabled = !admin.includes("resetRoom");
+
+    if (view.lobby && view.phase === "lobby") {
+      lobbyStatus.hidden = false;
+      lobbyStatus.textContent = `${view.lobby.pairs} pair(s) · ${view.lobby.seats} seats — START when ready`;
+    } else if (view.lobby?.theme) {
+      lobbyStatus.hidden = false;
+      lobbyStatus.textContent = `Theme: ${view.lobby.theme}`;
+    } else {
+      lobbyStatus.hidden = true;
+      lobbyStatus.textContent = "";
+    }
   }
 
   function render() {
@@ -249,7 +271,8 @@
     table.innerHTML = "";
     view.seats.forEach((seat, i) => {
       const el = document.createElement("div");
-      const classes = ["seat", seat.kind];
+      const classes = ["seat"];
+      if (seat.kind) classes.push(seat.kind);
       if (seat.seatId === view.you.seatId) classes.push("you");
       if (!seat.alive) classes.push("dead");
       if (selectedSeatId === seat.seatId) classes.push("selected");
@@ -258,7 +281,11 @@
       const r = 38;
       el.style.left = `${50 + r * Math.cos(angle)}%`;
       el.style.top = `${50 + r * Math.sin(angle)}%`;
-      el.innerHTML = `<span>${escapeHtml(shortName(seat.name))}</span><span class="kind">${escapeHtml(seat.kind)}</span>`;
+      const kindHtml =
+        seat.kind != null
+          ? `<span class="kind">${escapeHtml(seat.kind)}</span>`
+          : "";
+      el.innerHTML = `<span>${escapeHtml(shortName(seat.name))}</span>${kindHtml}`;
       el.title = seat.alive ? seat.name : `${seat.name} (dead)`;
       if ((view.allowed.admin || []).includes("setAlive")) {
         el.style.cursor = "pointer";

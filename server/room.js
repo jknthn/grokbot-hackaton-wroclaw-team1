@@ -15,6 +15,7 @@ function createRoom(rules, options = {}) {
     channels: { public: [] },
     window: null,
     nextSeat: 0,
+    meta: {},
     /** @type {Map<string, string>} sessionToken → playerId */
     sessions: new Map(),
     _bus: new EventEmitter(),
@@ -71,6 +72,11 @@ function createRoom(rules, options = {}) {
   }
 
   function join({ name, kind = "human", host = false, pin }) {
+    if (kind === "human" && room.phase !== "lobby") {
+      const err = new Error("lobby closed");
+      err.code = "LOBBY_CLOSED";
+      throw err;
+    }
     if (kind === "human" && !pinAllowed(pin)) {
       const err = new Error("invalid pin");
       err.code = "BAD_PIN";
@@ -98,7 +104,7 @@ function createRoom(rules, options = {}) {
       host: false,
       alive: true,
       tags: [],
-      meta: {},
+      meta: { lobbyName: trimmed },
       sessionToken: null,
     };
     // First human is host; or explicit host request if nobody is host yet. Bots never host.
@@ -113,6 +119,101 @@ function createRoom(rules, options = {}) {
     if (typeof rules.onJoin === "function") rules.onJoin(room, player);
     emitUpdate();
     return player;
+  }
+
+  function joinPair({ name, pin, host = false }) {
+    if (room.phase !== "lobby") {
+      const err = new Error("lobby closed");
+      err.code = "LOBBY_CLOSED";
+      throw err;
+    }
+    if (room.players.size + 2 > maxSeats) {
+      const err = new Error("room full");
+      err.code = "FULL";
+      throw err;
+    }
+    const human = join({ name, pin, host, kind: "human" });
+    const pairId = randomUUID();
+    const botLabel = `${human.name}'s shadow`.slice(0, 24);
+    const bot = joinBot({ name: botLabel });
+    human.meta.pairId = pairId;
+    human.meta.pairedPlayerId = bot.id;
+    human.meta.pairedWithSeat = bot.seatId;
+    bot.meta.pairId = pairId;
+    bot.meta.pairedPlayerId = human.id;
+    bot.meta.pairedWithSeat = human.seatId;
+    bot.meta.lobbyName = botLabel;
+    emitUpdate();
+    return { human, bot };
+  }
+
+  function announce(text) {
+    if (!room.channels.public) room.channels.public = [];
+    const body = String(text ?? "").trim().slice(0, 280);
+    if (!body) return;
+    room.channels.public.push({
+      fromSeat: -1,
+      name: "Town",
+      text: body,
+      ts: Date.now(),
+    });
+  }
+
+  function shuffleSeatIds() {
+    const players = listPlayers();
+    if (players.length < 2) return;
+    const seatIds = players.map((p) => p.seatId);
+    for (let i = seatIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [seatIds[i], seatIds[j]] = [seatIds[j], seatIds[i]];
+    }
+    players.forEach((player, i) => {
+      player.seatId = seatIds[i];
+    });
+    room.nextSeat = Math.max(...players.map((p) => p.seatId), -1) + 1;
+    for (const player of players) {
+      const otherId = player.meta?.pairedPlayerId;
+      if (!otherId) continue;
+      const other = room.players.get(otherId);
+      if (other) player.meta.pairedWithSeat = other.seatId;
+    }
+  }
+
+  function countPairs() {
+    const pairIds = new Set();
+    for (const p of listPlayers()) {
+      if (p.meta?.pairId) pairIds.add(p.meta.pairId);
+    }
+    return pairIds.size;
+  }
+
+  function startGame(hostId) {
+    const host = requireHost(hostId);
+    if (!canAdmin(host, "startGame")) {
+      const err = new Error("cannot start now");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    if (room.phase !== "lobby") {
+      const err = new Error("already started");
+      err.code = "NOT_LOBBY";
+      throw err;
+    }
+    if (countPairs() < 1) {
+      const err = new Error("need at least one pair");
+      err.code = "NO_PAIRS";
+      throw err;
+    }
+    if (typeof rules.onStartGame === "function") {
+      rules.onStartGame(room);
+    }
+    shuffleSeatIds();
+    const nextPhase =
+      typeof rules.postStartPhase === "function" ? rules.postStartPhase() : "talk";
+    room.phase = nextPhase;
+    const themeLabel = room.meta?.themeLabel || "the town";
+    announce(`The town opens under ${themeLabel}. Lore names are dealt. Kind stays hidden.`);
+    emitUpdate();
   }
 
   function issueSession(playerId) {
@@ -359,8 +460,19 @@ function createRoom(rules, options = {}) {
     for (const player of listPlayers()) {
       player.alive = true;
       player.tags = [];
-      player.meta = {};
+      const lobbyName = player.meta?.lobbyName || player.name;
+      const pairId = player.meta?.pairId;
+      const pairedPlayerId = player.meta?.pairedPlayerId;
+      player.meta = { lobbyName };
+      player.name = lobbyName;
+      if (pairId) player.meta.pairId = pairId;
+      if (pairedPlayerId) {
+        player.meta.pairedPlayerId = pairedPlayerId;
+        const other = room.players.get(pairedPlayerId);
+        if (other) player.meta.pairedWithSeat = other.seatId;
+      }
     }
+    room.meta = {};
 
     if (typeof rules.onReset === "function") {
       rules.onReset(room);
@@ -380,6 +492,7 @@ function createRoom(rules, options = {}) {
     room.phase = rules.initialPhase();
     room.window = null;
     room.nextSeat = 0;
+    room.meta = {};
     room.players.clear();
     room.sessions.clear();
     for (const key of Object.keys(room.channels)) {
@@ -406,6 +519,9 @@ function createRoom(rules, options = {}) {
   return {
     join,
     joinBot,
+    joinPair,
+    announce,
+    startGame,
     handleSay,
     handleAct,
     setPhase,
@@ -427,6 +543,9 @@ function createRoom(rules, options = {}) {
     },
     get window() {
       return room.window;
+    },
+    get meta() {
+      return room.meta;
     },
     players: room.players,
     channels: room.channels,

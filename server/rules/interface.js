@@ -21,10 +21,14 @@
  * @typedef {object} Rules
  * @property {() => string[]} phases
  * @property {() => string} initialPhase
+ * @property {() => string} [postStartPhase]
+ * @property {() => boolean} [hideKind]
  * @property {() => string[]} [actTypes]
  * @property {(room: RoomState) => void} [onStart]
  * @property {(room: RoomState, player: Player) => void} [onJoin]
  * @property {(room: RoomState) => void} [onReset] Host resetGame/resetRoom: clear rules round state (tokens, votes, etc.)
+ * @property {(room: RoomState) => void} [onStartGame] Deal lore, theme; room then shuffles seats
+ * @property {(room: RoomState) => object} [lobbySummary]
  * @property {(player: Player, channel: string, room: RoomState) => boolean} canSay
  * @property {(player: Player, type: string, room: RoomState) => boolean} canAct
  * @property {(player: Player, type: string, room: RoomState) => boolean} [canAdmin]

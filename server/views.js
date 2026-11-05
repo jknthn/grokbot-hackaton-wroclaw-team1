@@ -8,6 +8,7 @@ const ADMIN_TYPES = [
   "setAlive",
   "resetGame",
   "resetRoom",
+  "startGame",
 ];
 
 function getView(room, playerId) {
@@ -15,6 +16,7 @@ function getView(room, playerId) {
   if (!player) return null;
 
   const rules = room.rules;
+  const hideKind = typeof rules.hideKind === "function" ? rules.hideKind() : false;
   const seats = [...room.players.values()]
     .sort((a, b) => a.seatId - b.seatId)
     .map((seatPlayer) => rules.publicSeatFields(player, seatPlayer));
@@ -60,17 +62,21 @@ function getView(room, playerId) {
     };
   }
 
+  const you = {
+    playerId: player.id,
+    seatId: player.seatId,
+    name: player.name,
+    host: player.host,
+    alive: player.alive,
+  };
+  if (!hideKind) {
+    you.kind = player.kind;
+  }
+
   const view = {
     phase: room.phase,
     phases: rules.phases(),
-    you: {
-      playerId: player.id,
-      seatId: player.seatId,
-      name: player.name,
-      kind: player.kind,
-      host: player.host,
-      alive: player.alive,
-    },
+    you,
     seats,
     channels,
     window: windowView,
@@ -81,6 +87,10 @@ function getView(room, playerId) {
       admin,
     },
   };
+
+  if (typeof rules.lobbySummary === "function") {
+    view.lobby = rules.lobbySummary(room);
+  }
 
   if (player.kind === "bot") {
     view.botPrompt = rules.botPrompt(player, view);

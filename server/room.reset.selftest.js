@@ -55,8 +55,12 @@ assert.strictEqual(guest.host, false);
 assert.strictEqual(guest.alive, true);
 assert.strictEqual(bot.alive, true);
 assert.deepStrictEqual(guest.tags, []);
-assert.deepStrictEqual(guest.meta, {});
-assert.deepStrictEqual(bot.meta, {});
+assert.strictEqual(guest.meta.lobbyName, "Guest");
+assert.strictEqual(guest.name, "Guest");
+assert.ok(!guest.meta.strike);
+assert.ok(!bot.meta.strike);
+assert.strictEqual(bot.meta.lobbyName, "Grok-R");
+assert.strictEqual(bot.name, "Grok-R");
 
 const hostView = room.viewFor(host.id);
 assert.ok(hostView.allowed.admin.includes("resetGame"));
