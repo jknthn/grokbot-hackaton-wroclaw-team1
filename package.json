@@ -1,0 +1,18 @@
+{
+  "name": "grokbot-hackaton-wroclaw-team1",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multiagent game kernel — Milestone 0 sandbox",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "test:sandbox": "node server/rules/sandbox.selftest.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}

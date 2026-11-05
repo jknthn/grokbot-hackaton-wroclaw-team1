@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Table — Multiagent Kernel</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="join-screen" class="panel join">
+      <h1>The Table</h1>
+      <p class="sub">Multiagent kernel · sandbox rules</p>
+      <label>Name <input id="name" maxlength="24" placeholder="Ada" autocomplete="nickname" /></label>
+      <label>PIN <input id="pin" maxlength="8" placeholder="4821" value="4821" autocomplete="off" /></label>
+      <label class="check"><input type="checkbox" id="want-host" /> Claim host (if free)</label>
+      <button id="join-btn" type="button">Join</button>
+      <p id="join-error" class="error" hidden></p>
+    </div>
+
+    <div id="game" class="game" hidden>
+      <header class="bar">
+        <div>
+          <strong id="phase-label">phase</strong>
+          <span id="you-label" class="muted"></span>
+        </div>
+        <div id="host-controls" class="host" hidden>
+          <button type="button" data-phase="lobby">Lobby</button>
+          <button type="button" data-phase="talk">Talk</button>
+          <button type="button" data-phase="done">Done</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="table-wrap">
+          <div id="table" class="table" aria-label="Seats"></div>
+          <p class="hint">Empty chat? Host: switch phase to <em>Talk</em>.</p>
+        </section>
+        <section class="chat-wrap">
+          <div id="chat" class="chat"></div>
+          <form id="say-form" class="say">
+            <input id="say-input" maxlength="280" placeholder="Say something…" autocomplete="off" />
+            <button type="submit">Send</button>
+          </form>
+          <button id="ready-btn" type="button" class="secondary">Ready</button>
+        </section>
+      </main>
+      <p id="game-error" class="error" hidden></p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

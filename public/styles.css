@@ -1,0 +1,241 @@
+:root {
+  --bg: #1a1520;
+  --bg2: #241c2c;
+  --ink: #f3eef7;
+  --muted: #a898b0;
+  --accent: #e8a45a;
+  --seat: #3a2f45;
+  --bot: #4a6fa5;
+  --human: #5a8f6a;
+  --line: #3d3348;
+  --danger: #e07070;
+  --radius: 14px;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse at 20% 0%, #3a2840 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, #2a2038 0%, transparent 45%),
+    var(--bg);
+}
+
+.panel,
+.game {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.join {
+  margin-top: 12vh;
+  display: grid;
+  gap: 0.75rem;
+  max-width: 360px;
+}
+
+.join h1 {
+  margin: 0;
+  font-size: 2.4rem;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
+.sub {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+input[type="text"],
+input:not([type]),
+input[type="password"],
+#pin,
+#name,
+#say-input {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg2);
+  color: var(--ink);
+  font: inherit;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 999px;
+  padding: 0.65rem 1.1rem;
+  background: var(--accent);
+  color: #1a1208;
+  font-weight: 600;
+}
+
+button.secondary {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  margin-top: 0.5rem;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.host button {
+  background: var(--bg2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  margin-left: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: var(--muted);
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.table {
+  position: relative;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background:
+    radial-gradient(circle at 50% 50%, #2e2438 0%, #1e1826 70%);
+}
+
+.seat {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  border-radius: 50%;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  font-size: 0.72rem;
+  line-height: 1.15;
+  background: var(--seat);
+  border: 2px solid var(--line);
+  padding: 0.25rem;
+}
+
+.seat.human {
+  border-color: var(--human);
+}
+
+.seat.bot {
+  border-color: var(--bot);
+}
+
+.seat.you {
+  box-shadow: 0 0 0 3px var(--accent);
+}
+
+.seat .kind {
+  display: block;
+  color: var(--muted);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.chat-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  max-height: 360px;
+}
+
+.msg {
+  font-size: 0.95rem;
+}
+
+.msg .who {
+  color: var(--accent);
+  font-weight: 600;
+  margin-right: 0.35rem;
+}
+
+.say {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.say input {
+  flex: 1;
+}
+
+.error {
+  color: var(--danger);
+  margin-top: 0.75rem;
+}
+
+[hidden] {
+  display: none !important;
+}
