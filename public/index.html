@@ -3,45 +3,65 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Table — Multiagent Kernel</title>
+    <title>NORTH JERSEY — The Club</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div id="join-screen" class="panel join">
-      <h1>The Table</h1>
-      <p class="sub">Multiagent kernel · sandbox rules</p>
-      <label>Name <input id="name" maxlength="24" placeholder="Ada" autocomplete="nickname" /></label>
-      <label>PIN <input id="pin" maxlength="8" placeholder="4821" value="4821" autocomplete="off" /></label>
-      <label class="check"><input type="checkbox" id="want-host" /> Claim host (if free)</label>
-      <button id="join-btn" type="button">Join</button>
+      <p class="eyebrow">NORTH JERSEY · MEMBERS ONLY</p>
+      <h1>THE CLUB</h1>
+      <p class="sub">Sit-down at the table. Watch what you say. Bring the pin.</p>
+      <label>Name <input id="name" maxlength="24" placeholder="TONY" autocomplete="nickname" /></label>
+      <label>Door code <input id="pin" maxlength="8" placeholder="4821" value="4821" autocomplete="off" /></label>
+      <label class="check"><input type="checkbox" id="want-host" /> I’m running this sit-down (host)</label>
+      <button id="join-btn" type="button">COME IN</button>
       <p id="join-error" class="error" hidden></p>
     </div>
 
     <div id="game" class="game" hidden>
       <header class="bar">
         <div>
-          <strong id="phase-label">phase</strong>
+          <strong id="phase-label" class="phase-hud">LOBBY</strong>
           <span id="you-label" class="muted"></span>
         </div>
         <div id="host-controls" class="host" hidden>
-          <button type="button" data-phase="lobby">Lobby</button>
-          <button type="button" data-phase="talk">Talk</button>
-          <button type="button" data-phase="done">Done</button>
+          <div id="phase-buttons" class="host-row"></div>
+          <div class="host-row">
+            <button type="button" id="open-window-btn">OPEN WINDOW</button>
+            <button type="button" id="close-window-btn">REVEAL</button>
+            <button type="button" id="add-bot-btn">ADD BOT</button>
+          </div>
+          <p id="host-hint" class="host-hint">Click a seat to kill / revive</p>
         </div>
       </header>
 
       <main class="layout">
         <section class="table-wrap">
           <div id="table" class="table" aria-label="Seats"></div>
-          <p class="hint">Empty chat? Host: switch phase to <em>Talk</em>.</p>
+          <p class="hint">Nobody talking? Host opens <em>TALK</em>, then <em>OPEN WINDOW</em> for a blind round.</p>
         </section>
-        <section class="chat-wrap">
+        <section id="chat-wrap" class="chat-wrap">
+          <div id="window-banner" class="window-banner" hidden>
+            <span id="window-status">Blind write open</span>
+            <span id="window-count" class="muted"></span>
+          </div>
           <div id="chat" class="chat"></div>
           <form id="say-form" class="say">
-            <input id="say-input" maxlength="280" placeholder="Say something…" autocomplete="off" />
-            <button type="submit">Send</button>
+            <input id="say-input" maxlength="280" placeholder="Be careful what you put on the record…" autocomplete="off" />
+            <button type="submit">SAY</button>
           </form>
-          <button id="ready-btn" type="button" class="secondary">Ready</button>
+          <form id="submit-form" class="say submit-form" hidden>
+            <input id="submit-input" maxlength="160" placeholder="Blind line — others can’t see this yet…" autocomplete="off" />
+            <button type="submit">SUBMIT</button>
+          </form>
+          <p id="your-draft" class="your-draft" hidden></p>
+          <button id="ready-btn" type="button" class="secondary">READY</button>
         </section>
       </main>
       <p id="game-error" class="error" hidden></p>

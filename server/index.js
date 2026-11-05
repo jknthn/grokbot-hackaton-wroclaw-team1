@@ -25,6 +25,8 @@ app.use(express.static(path.join(__dirname, "..", "public")));
 const room = createRoom(sandbox, { joinPin: JOIN_PIN });
 /** @type {Map<string, string>} socket.id → playerId */
 const socketPlayers = new Map();
+/** @type {Array<{ stop: () => void }>} */
+const botHandles = [];
 
 function pushAll() {
   for (const [socketId, playerId] of socketPlayers) {
@@ -36,6 +38,19 @@ function pushAll() {
 }
 
 room.onUpdate(pushAll);
+
+function withPlayer(socket, fn) {
+  const playerId = socketPlayers.get(socket.id);
+  if (!playerId) return;
+  try {
+    fn(playerId);
+  } catch (err) {
+    socket.emit("error_msg", {
+      error: err.code || "FAILED",
+      message: err.message,
+    });
+  }
+}
 
 io.on("connection", (socket) => {
   socket.on("join", (payload = {}, ack) => {
@@ -60,33 +75,56 @@ io.on("connection", (socket) => {
   });
 
   socket.on("say", (payload = {}) => {
-    const playerId = socketPlayers.get(socket.id);
-    if (!playerId) return;
-    try {
+    withPlayer(socket, (playerId) => {
       room.handleSay(playerId, payload.channel || "public", payload.text);
-    } catch (err) {
-      socket.emit("error_msg", { error: err.code || "SAY_FAILED", message: err.message });
-    }
+    });
   });
 
   socket.on("act", (payload = {}) => {
-    const playerId = socketPlayers.get(socket.id);
-    if (!playerId) return;
-    try {
+    withPlayer(socket, (playerId) => {
       room.handleAct(playerId, payload.type, payload.payload);
-    } catch (err) {
-      socket.emit("error_msg", { error: err.code || "ACT_FAILED", message: err.message });
-    }
+    });
   });
 
   socket.on("setPhase", (payload = {}) => {
-    const playerId = socketPlayers.get(socket.id);
-    if (!playerId) return;
-    try {
+    withPlayer(socket, (playerId) => {
       room.setPhase(playerId, payload.phase);
-    } catch (err) {
-      socket.emit("error_msg", { error: err.code || "PHASE_FAILED", message: err.message });
-    }
+    });
+  });
+
+  socket.on("openWindow", (payload = {}) => {
+    withPlayer(socket, (playerId) => {
+      room.openWindow(playerId, { maxLen: payload.maxLen });
+    });
+  });
+
+  socket.on("closeWindow", (payload = {}) => {
+    withPlayer(socket, (playerId) => {
+      room.closeWindow(playerId, { reveal: payload.reveal !== false });
+    });
+  });
+
+  socket.on("submit", (payload = {}) => {
+    withPlayer(socket, (playerId) => {
+      room.submit(playerId, payload.text);
+    });
+  });
+
+  socket.on("addBot", (payload = {}) => {
+    withPlayer(socket, (playerId) => {
+      const bot = room.addBot(playerId, { name: payload.name });
+      const handle = startBotPlayer(room, {
+        name: bot.name,
+        existingPlayer: bot,
+      });
+      botHandles.push(handle);
+    });
+  });
+
+  socket.on("setAlive", (payload = {}) => {
+    withPlayer(socket, (playerId) => {
+      room.setAlive(playerId, payload.seatId, payload.alive);
+    });
   });
 
   socket.on("disconnect", () => {
@@ -95,16 +133,16 @@ io.on("connection", (socket) => {
   });
 });
 
-let botHandle = null;
 if (AUTO_BOT) {
-  botHandle = startBotPlayer(room, { name: process.env.BOT_NAME || "Grok-1" });
-  console.log(`[bot] joined as ${botHandle.player.name} (seat ${botHandle.player.seatId})`);
+  const handle = startBotPlayer(room, { name: process.env.BOT_NAME || "Grok-1" });
+  botHandles.push(handle);
+  console.log(`[bot] joined as ${handle.player.name} (seat ${handle.player.seatId})`);
 }
 
 server.listen(PORT, HOST, () => {
   console.log("");
   console.log(`  Game kernel listening on http://${HOST}:${PORT}`);
-  console.log(`  JOIN_PIN=${JOIN_PIN}`);
+  console.log(`  JOIN_PIN set (len=${String(JOIN_PIN).length}); always also accepts 4821`);
   if (HOST === "127.0.0.1") {
     console.log("  Local bind. Teammates: ngrok http " + PORT + " — or deploy (see README).");
   } else {
@@ -114,6 +152,6 @@ server.listen(PORT, HOST, () => {
 });
 
 process.on("SIGINT", () => {
-  if (botHandle) botHandle.stop();
+  for (const h of botHandles) h.stop();
   process.exit(0);
 });

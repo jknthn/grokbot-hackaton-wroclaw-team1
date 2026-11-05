@@ -4,10 +4,18 @@ Multiagent social deduction (Mafia-shaped) on a game-agnostic kernel: humans and
 
 ## Docs
 
-- [Locked loop v1 (product)](docs/locked-loop-v1.md) — crisis + vote + night strike
+- **[Current status](docs/STATUS.md)** — live URL, PIN, M0 done / M1 next
+- [Locked loop v1 (product)](docs/locked-loop-v1.md) — lore names, hidden kind, shadow night
+- [UI guidelines](docs/ui-guidelines.md) — pixel town hall skin (non-blocking)
 - [Project plan (Milestone 0+ / kernel)](docs/grokmafia-plan.md)
 - [M0 acceptance](docs/m0-acceptance.md)
+- [M1 acceptance](docs/m1-acceptance.md)
 - [Pitch v0](docs/pitch-v0.md)
+
+## Live demo
+
+https://grokmafia-kernel.onrender.com · PIN **`4821`**  
+(Cold start on free Render can take ~1 minute.)
 
 ## Quick start (local)
 

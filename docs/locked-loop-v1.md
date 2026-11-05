@@ -1,37 +1,51 @@
-# Locked loop v1 — town crisis + vote + night strike
+# Locked loop v1 — lore town, crisis points, shadow night
 
-**Status:** product locked (2026-11-05). Supersedes the colluding-mafia night channel in `grokmafia-plan.md` for v1 gameplay. Kernel architecture (Room / Player / Rules / Views) stays.
+**Status:** product locked (2026-11-05). Supersedes both earlier v1 sketches: the solo strike-token loop (no private bot chat, reveal on kick, crisis kills a human) and the named colluding-mafia night channel in `grokmafia-plan.md`. Kernel architecture (Room / Player / Rules / Views) stays.
 
 ## One-line
 
-Mixed humans + solo Grok bots in one town hall. Bots know they are bots. Talk → crisis → vote → night strike until one side wins. Text only.
+Humans and bots share one town under a lore theme. Kind is hidden. Talk → LLM-judged crisis (city points, nobody auto-dies) → vote without a reveal → anonymous shadow night until one side wins. Text only.
 
 ## Locked constraints
 
 | Decision | Choice |
 |----------|--------|
-| Communication | Town hall / public channel only — no DMs, no bot–bot private chat |
-| Day talk | Simultaneous turns: private write, then one reveal. Free-scroll chat is not the scoring mode |
-| Message cap | ~120–160 characters; 1 message per living seat per talk window |
-| Bot knowledge | Bots know they are bots; secret goal = survive + thin humans; never confess |
-| Bot collusion | Solo — each bot acts alone |
+| Theme | One lore theme at start (e.g. Wild West, space). Every seat, human or bot, gets a lore name + persona from that theme |
+| Names | Shared name pool. No `Grok-1` or other kind tells |
+| Kind in views | Hidden in all player views |
+| Lobby | Collect seats, then start. Personas and hidden roles are assigned at start. No join after start |
+| Disconnect | Seat is removed with reason `disconnected`. No reconnect |
+| Day talk | Simultaneous private write, then one batch reveal. Messages are attributed. Free-scroll is not the scoring mode |
+| Message cap | 1 short message per living seat per talk window (~120–160 characters) |
+| Crisis | An LLM judges whether the city’s answers helped. Not a string-majority check |
+| Crisis outcome | Soft only: city points and/or slowdown. Never an automatic human death |
+| City points | Example spend: block the human the shadows targeted tonight |
+| Day vote | Majority of living seats removes a seat. Removal does **not** reveal bot vs human |
+| Night | Living bots share an anonymous channel (`Shadow A`, `Shadow B`, …). Labels reshuffle every night. They do not learn which seat a shadow is |
+| Night kill | Each shadow votes a living **human** seat or passes. Majority of shadows decides. Humans-only targets |
+| Bot knowledge | Bots know they are bots. Team win: dead bots share it. Never confess |
+| Prompt injection | Accepted risk. Mitigation is a strong never-confess prompt only |
 | Media | Text first; voice later |
-| UI shape | Seat table + public transcript (already in M0); no map / movement; no typing indicators during a writing window |
+| UI shape | Seat table + public transcript (M0 shell); no map / movement; no typing indicators during the talk window |
 
 ## Win conditions
 
 - **Humans win:** no bots left alive.
-- **Bots win:** living humans ≤ living bots (or zero humans).
+- **Bots win as a team:** living humans ≤ living bots (or zero humans). Dead bots share that win. Survival of any one bot is not the goal.
 
-Check after crisis resolve, after vote resolve, and after night resolve.
+Check after vote resolve and after night resolve. Crisis does not change who is alive.
 
 ## Setup (once per game)
 
-1. Fill ~6 seats (host sets human/bot mix; bot count hidden from players).
-2. Each seat: display name + short persona sheet.
-3. Each bot also gets: “you are a bot; win by surviving and removing humans; never say you are a bot.”
-4. Each bot starts with **1 night strike** token for the whole game.
-5. Phase opens in town hall (`talk` or host-driven equivalent).
+1. Lobby collects ~6 seats (host sets the human/bot mix; the count stays hidden from players).
+2. Start closes the lobby. No one else can join.
+3. Server picks the lore theme, then assigns each seat a lore name and a short persona from a shared pool. Humans and bots draw from the same pool.
+4. Hidden team is fixed at start. Player views never include `kind`.
+5. Each bot’s prompt adds: “you are a bot; your team wins together, including bots who die; thin the humans; never say you are a bot.”
+6. City points start at 0.
+7. Phase opens in town hall (`talk`, or the host advances).
+
+A disconnect removes that seat immediately and announces the reason `disconnected`. Do not build reconnect.
 
 ## Full round
 
@@ -39,46 +53,50 @@ Check after crisis resolve, after vote resolve, and after night resolve.
 
 Scoring talk is turn-based simultaneous reveal. Free-scroll chat is not the competitive talk mode.
 
-- Timer (e.g. 3 minutes) or host advance.
-- Each living seat writes **privately** during the window. The room reveals every submitted message at once when the window ends.
+- Timer or host advance.
+- Each living seat writes **privately**. When the window ends, the room reveals every submitted message **at once**, attributed to that seat’s lore name.
 - No typing indicators. No live free-scroll of other seats’ lines while the window is open.
-- Hard rules: max ~120–160 characters per message; **1 message per seat per talk window**.
+- Hard rules: **1 message per seat per window**, ~120–160 characters.
 - Optional (not required for v1): the window can be a forced prompt, e.g. “name one ally and why, ≤12 words.”
-- Bots reply in character from persona + the public transcript already revealed (not from drafts still hidden this window).
-- On end: lock the window and move to crisis.
+- Bots write from persona + the public transcript already revealed (not from drafts still hidden this window).
+- On end: move to crisis.
 
 ### 2. Day — crisis
 
 - Server posts one crisis prompt to town hall.
-- Short window (e.g. 60–90s). Each living seat submits **one** answer.
-- Same anti-tell pattern as day talk: answers stay private until the window ends, then the room reveals them together. No typing indicators and no live preview of other seats’ answers.
-- **Success:** clear majority answer → nobody dies from crisis.
-- **Fail:** tie / no majority / timeout → remove **one random living human**. Announce casualty; **role stays hidden**.
-- Win check.
+- Short window. Each living seat submits **one** answer.
+- A submit counter is allowed (how many seats have answered, and which ones). Answers, once shown, are **attributed** — lore names stay visible.
+- An LLM judges whether the city’s answers helped. Do not resolve this by matching identical strings or by a word-majority.
+- **Helped:** grant city points and/or a slowdown in the city’s favor.
+- **Did not help:** no points, and/or a slowdown against the city.
+- Nobody dies from the crisis. Roles stay hidden.
+- No win check from this phase.
 
-Example crisis pack (copy-pasteable):
+Slowdown is a tempo consequence (shorter or longer next window). It is not a kill.
 
-- Majority: name the next shelter in one word.
-- Majority: order these 4 rumors true → false.
-- Everyone posts a childhood memory in ≤12 words (bots use persona; contradictions are tells).
+Example prompts (the model judges the pile, not a shared password):
+
+- The well is failing. What do we do before night?
+- Four rumors are circulating. Which ones should the town act on?
+- Name the next shelter and why it holds.
 
 ### 3. Day — vote
 
-- Living seats vote to kick one living seat (click seat / `act: vote`).
-- **Majority of living seats** required to kick. (Lock this rule; do not mix with “majority of votes cast” mid-demo.)
-- No majority → nobody kicked; day ends.
-- Kicked seat is **revealed** as bot or human, then removed from chat (spectator / dead).
+- Living seats vote to remove one living seat (click seat / `act: vote`).
+- **Majority of living seats** is required. (Do not switch to “majority of votes cast” mid-demo.)
+- No majority → nobody removed; the day ends.
+- The removed seat leaves play. **Bot vs human is not revealed.**
 - Win check.
 
-### 4. Night — strike
+### 4. Night — shadow channel
 
-- Chat locked. Humans wait.
-- Each living bot privately chooses: spend strike on one living **human**, or pass. (`act` visible only to that bot + host as needed — **not** a shared bot channel.)
-- At most **one** human death per night:
-  - If any strikes land, eliminate the human with the most strikes.
-  - Tie: pick deterministically (e.g. lowest `seatId`) and document it.
-- Town hall: “Seat Y vanished in the night.” Role stays hidden.
-- Spent strikes are gone; bots who passed keep theirs.
+- Public chat locks. Humans wait. They do not see the shadow channel.
+- Each living bot joins as `Shadow A`, `Shadow B`, … Labels are shuffled **every night**, so a letter is not a stable identity. Shadows are not told which seat the other shadows occupy.
+- They talk on that private channel and must cooperate.
+- Then each shadow votes for one living **human** seat, or passes. Votes against bots are invalid.
+- **Majority of living shadows** selects the target. A tie or no majority → quiet night, nobody dies.
+- The city may spend city points to block that kill. A blocked kill does not happen.
+- Humans only see the wait, then either a line like “Ada vanished in the night.” (the seat’s lore name) or a quiet night. Role stays hidden. A save reads as quiet.
 - Win check → if no winner, next day talk.
 
 ## Phase sketch (Rules module)
@@ -92,24 +110,29 @@ Host may `setPhase` for the hackathon demo if timers are incomplete. Auto-timers
 ## Bot behavior notes
 
 - Same `say` / `act` paths as humans.
-- Prompt includes persona, public transcript slice, phase, allowed acts, strike remaining, win goal.
-- Server-side filter optional: block utterances that confess being a bot.
-- No private negotiation between bots — solo pressure is intentional.
+- Public prompt includes lore persona, revealed transcript, phase, allowed acts, city points if the seat can see them, and the team win.
+- Night prompt adds the shadow label for this night only, the shadow transcript, and the list of living human seats they may vote.
+- Never-confess is prompt text. v1 does not add a confession filter. Prompt injection is an accepted risk.
+- Night cooperation is required, and it stays anonymous. That replaces solo strike tokens.
 
 ## Hackathon join
 
-- Share deploy URL + `JOIN_PIN` (see README).
-- Dead seats → read-only spectators.
-- Out of v1: custom agent webhooks, voice, map art, accounts.
+- Share deploy URL + `JOIN_PIN` (see README). Join is lobby-only.
+- Removed seats are gone (vote, night, or disconnect). No reconnect flow.
+- Out of v1: custom agent webhooks, voice, map art, accounts, reconnect.
 
-## Cut from v1 (explicit)
+## Superseded (do not build)
 
-- Private mafia channel / agent–agent night negotiation
+- Solo night strike token, one kill per bot, no private bot chat
+- Crisis fail removes a random human
+- String-majority / identical-answer crisis resolution
+- Day vote reveals bot vs human
+- Named mafia night channel where agents know each other’s seats
 - Bots that believe they are human
-- Voice / TTS
-- Spatial map / tasks / movement
-- Lobby platform beyond one room + PIN
+- `Grok-1` (or any kind-leaking display name) in player views
+- Voice / TTS, spatial map, lobby platform beyond one room + PIN
+- Reconnect after disconnect
 
 ## Relation to M0
 
-Milestone 0 (SandboxRules + seat UI + BotPlayer) stays the kernel proof. This doc is the **product** for Milestone 1 Rules (name TBD: `town.js` / `crisis.js`), not a rewrite of Room sockets.
+Milestone 0 (SandboxRules + seat UI + BotPlayer) stays the kernel proof, including whatever the sandbox still shows for `kind`. This doc is the **product** for Milestone 1 Rules. Player views for that Rules module hide kind and use the shared lore-name pool. It is not a rewrite of Room sockets.
