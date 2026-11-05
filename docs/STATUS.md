@@ -36,6 +36,7 @@ Product lock: [`locked-loop-v1.md`](locked-loop-v1.md) · checklist: [`m1-accept
 Swap/add town Rules (name TBD) — **not** private mafia night:
 
 - Phases `talk → crisis → vote → night`
+- Talk + crisis: simultaneous private write → one reveal (no live free-scroll)
 - Crisis majority / fail → random human casualty (role hidden)
 - `act: vote` — majority of living seats; reveal on kick
 - Night strike: each bot, 1 token, target **any** living seat (no kind roster); ≤1 death
