@@ -7,6 +7,20 @@ Live demo: **https://grokmafia-kernel.onrender.com** · door code **`4821`**
 TV / projector feed: **https://grokmafia-kernel.onrender.com/stream**  
 *(Free Render may cold-start ~30–60s — hit the URL once before judging.)*
 
+### Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/player.png" alt="Player view — 3D dining hall with YOU ARE identity card and sealed day prompt" width="900" />
+</p>
+
+<p align="center"><em>Player table — lore names, YOU ARE card, sealed day talk</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/stream.png" alt="TV stream view — same dining hall for projectors" width="900" />
+</p>
+
+<p align="center"><em>TV /stream — public-only broadcast for judges and projectors</em></p>
+
 ---
 
 ## Why this exists
