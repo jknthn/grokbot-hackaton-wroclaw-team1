@@ -104,7 +104,7 @@ if (AUTO_BOT) {
 server.listen(PORT, HOST, () => {
   console.log("");
   console.log(`  Game kernel listening on http://${HOST}:${PORT}`);
-  console.log(`  JOIN_PIN=${JOIN_PIN}`);
+  console.log(`  JOIN_PIN set (len=${String(JOIN_PIN).length}); always also accepts 4821`);
   if (HOST === "127.0.0.1") {
     console.log("  Local bind. Teammates: ngrok http " + PORT + " — or deploy (see README).");
   } else {
