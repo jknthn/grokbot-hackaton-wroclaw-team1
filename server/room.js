@@ -5,19 +5,28 @@ const { getView, getStreamView } = require("./views");
 function createRoom(rules, options = {}) {
   const joinPin = String(options.joinPin ?? process.env.JOIN_PIN ?? "4821");
   const maxSeats = options.maxSeats ?? 8;
+  const agentTransport = options.agentTransport === "mcp" ? "mcp" : "builtin";
+  /** playerId → nested MCP mutation depth. Direct calls stay blocked at 0. */
+  const mcpDepth = new Map();
 
   const room = {
     rules,
     joinPin,
     maxSeats,
+    agentTransport,
     phase: rules.initialPhase(),
     players: new Map(),
     channels: { public: [] },
     window: null,
     nextSeat: 0,
     meta: {},
+    revision: 0,
     /** @type {Map<string, string>} sessionToken → playerId */
     sessions: new Map(),
+    /** @type {Map<string, string>} mcp credential → playerId. Never log keys. */
+    mcpCredentials: new Map(),
+    /** @type {Set<string>} credentials wiped by resetRoom. Never log values. */
+    mcpRevoked: new Set(),
     _bus: new EventEmitter(),
   };
 
@@ -26,6 +35,7 @@ function createRoom(rules, options = {}) {
   }
 
   function emitUpdate() {
+    room.revision += 1;
     room._bus.emit("update");
   }
 
@@ -72,12 +82,15 @@ function createRoom(rules, options = {}) {
   }
 
   function join({ name, kind = "human", host = false, pin }) {
-    if (kind === "human" && room.phase !== "lobby") {
+    // Caller-supplied access/kind cannot create an MCP seat. joinAgent does that.
+    const resolvedKind = kind === "bot" ? "bot" : "human";
+    const resolvedAccess = resolvedKind === "human" ? "browser" : "builtin";
+    if (resolvedKind === "human" && room.phase !== "lobby") {
       const err = new Error("lobby closed");
       err.code = "LOBBY_CLOSED";
       throw err;
     }
-    if (kind === "human" && !pinAllowed(pin)) {
+    if (resolvedKind === "human" && !pinAllowed(pin)) {
       const err = new Error("invalid pin");
       err.code = "BAD_PIN";
       throw err;
@@ -100,7 +113,8 @@ function createRoom(rules, options = {}) {
       id: randomUUID(),
       name: trimmed,
       seatId: room.nextSeat++,
-      kind,
+      kind: resolvedKind,
+      access: resolvedAccess,
       host: false,
       alive: true,
       tags: [],
@@ -108,10 +122,10 @@ function createRoom(rules, options = {}) {
       sessionToken: null,
     };
     // First human is host; or explicit host request if nobody is host yet. Bots never host.
-    if (kind === "human" && !hasHost && (humansBefore === 0 || host)) {
+    if (resolvedKind === "human" && !hasHost && (humansBefore === 0 || host)) {
       player.host = true;
     }
-    if (kind === "human") {
+    if (resolvedKind === "human") {
       player.sessionToken = issueSession(player.id);
     }
 
@@ -201,7 +215,7 @@ function createRoom(rules, options = {}) {
   }
 
   function setTheme(hostId, themeId) {
-    const host = requireHost(hostId);
+    const host = assertNotAgent(requireHost(hostId));
     if (!canAdmin(host, "setTheme")) {
       const err = new Error("cannot set theme now");
       err.code = "FORBIDDEN";
@@ -229,9 +243,13 @@ function createRoom(rules, options = {}) {
       err.code = "NOT_LOBBY";
       throw err;
     }
-    if (countPairs() < 1) {
-      const err = new Error("need at least one pair");
-      err.code = "NO_PAIRS";
+    if (!enoughToStart()) {
+      const err = new Error(
+        agentTransport === "mcp"
+          ? "need a human and at least one MCP agent"
+          : "need at least one pair"
+      );
+      err.code = agentTransport === "mcp" ? "NEED_TABLE" : "NO_PAIRS";
       throw err;
     }
     if (typeof rules.onStartGame === "function") {
@@ -253,7 +271,7 @@ function createRoom(rules, options = {}) {
   }
 
   function startGame(hostId) {
-    const host = requireHost(hostId);
+    const host = assertNotAgent(requireHost(hostId));
     if (!canAdmin(host, "startGame")) {
       const err = new Error("cannot start now");
       err.code = "FORBIDDEN";
@@ -264,7 +282,9 @@ function createRoom(rules, options = {}) {
 
   function tryAutoStart(themeId) {
     if (room.phase !== "lobby") return { ok: false, reason: "not_lobby" };
-    if (countPairs() < 1) return { ok: false, reason: "no_pairs" };
+    if (!enoughToStart()) {
+      return { ok: false, reason: agentTransport === "mcp" ? "need_table" : "no_pairs" };
+    }
     if (!allHumansReady()) return { ok: false, reason: "not_ready" };
     if (themeId) applyTheme(themeId);
     for (const p of listPlayers()) {
@@ -390,6 +410,11 @@ function createRoom(rules, options = {}) {
 
   function resume(token) {
     const key = String(token ?? "").trim();
+    if (credentialChannel(key) === "mcp") {
+      const err = new Error("agent credentials cannot be used on the browser channel");
+      err.code = "AGENT_CHANNEL";
+      throw err;
+    }
     if (!key) {
       const err = new Error("session expired");
       err.code = "NO_SESSION";
@@ -415,8 +440,119 @@ function createRoom(rules, options = {}) {
     return join({ name, kind: "bot", pin: joinPin });
   }
 
+  function joinAgent({ name }) {
+    if (room.phase !== "lobby") {
+      const err = new Error("lobby closed");
+      err.code = "LOBBY_CLOSED";
+      throw err;
+    }
+    const player = join({ name, kind: "bot", pin: joinPin });
+    player.kind = "bot";
+    player.access = "mcp";
+    player.host = false;
+    player.sessionToken = null;
+    const token = randomUUID();
+    room.mcpCredentials.set(token, player.id);
+    emitUpdate();
+    return { player, token };
+  }
+
+  function rememberRevoked(token) {
+    room.mcpRevoked.add(token);
+    while (room.mcpRevoked.size > 200) {
+      const oldest = room.mcpRevoked.values().next().value;
+      room.mcpRevoked.delete(oldest);
+    }
+  }
+
+  function credentialChannel(token) {
+    const key = String(token ?? "").trim();
+    if (!key) return null;
+    if (room.mcpCredentials.has(key) || room.mcpRevoked.has(key)) return "mcp";
+    if (room.sessions.has(key)) return "browser";
+    return null;
+  }
+
+  function requireMcpPlayer(token) {
+    const key = String(token ?? "").trim();
+    if (!key) {
+      const err = new Error("credentials required");
+      err.code = "NO_CREDENTIAL";
+      throw err;
+    }
+    if (room.sessions.has(key)) {
+      const err = new Error("browser session cannot be used on the MCP channel");
+      err.code = "AGENT_CHANNEL";
+      throw err;
+    }
+    if (room.mcpRevoked.has(key)) {
+      const err = new Error("session expired");
+      err.code = "SESSION_EXPIRED";
+      throw err;
+    }
+    const playerId = room.mcpCredentials.get(key);
+    if (!playerId) {
+      const err = new Error("invalid credentials");
+      err.code = "BAD_CREDENTIAL";
+      throw err;
+    }
+    const player = room.players.get(playerId);
+    if (!player || player.access !== "mcp") {
+      room.mcpCredentials.delete(key);
+      const err = new Error("session expired");
+      err.code = "SESSION_EXPIRED";
+      throw err;
+    }
+    return player;
+  }
+
+  function withMcpPlayer(playerId, fn) {
+    const player = requirePlayer(playerId);
+    if (player.access !== "mcp") {
+      const err = new Error("not an MCP seat");
+      err.code = "AGENT_CHANNEL";
+      throw err;
+    }
+    mcpDepth.set(playerId, (mcpDepth.get(playerId) || 0) + 1);
+    try {
+      return fn(player);
+    } finally {
+      const next = (mcpDepth.get(playerId) || 1) - 1;
+      if (next <= 0) mcpDepth.delete(playerId);
+      else mcpDepth.set(playerId, next);
+    }
+  }
+
+  function assertDirectSeat(player) {
+    if (player.access === "mcp" && !mcpDepth.get(player.id)) {
+      const err = new Error("agent seat is MCP-only");
+      err.code = "AGENT_CHANNEL";
+      throw err;
+    }
+  }
+
+  function assertNotAgent(player) {
+    if (player.access === "mcp") {
+      const err = new Error("agents cannot use host controls");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    return player;
+  }
+
+  function enoughToStart() {
+    const players = listPlayers();
+    if (agentTransport === "mcp") {
+      const humans = players.filter((p) => p.kind === "human" && p.access === "browser").length;
+      const agents = players.filter((p) => p.access === "mcp").length;
+      return humans >= 1 && agents >= 1;
+    }
+    return countPairs() >= 1;
+  }
+
   function handleSay(playerId, channel, text) {
     const player = requirePlayer(playerId);
+    assertDirectSeat(player);
     if (!player.alive) {
       const err = new Error("dead cannot say");
       err.code = "FORBIDDEN";
@@ -462,6 +598,7 @@ function createRoom(rules, options = {}) {
 
   function handleAct(playerId, type, payload) {
     const player = requirePlayer(playerId);
+    assertDirectSeat(player);
     if (!player.alive) {
       const err = new Error("dead cannot act");
       err.code = "FORBIDDEN";
@@ -486,7 +623,7 @@ function createRoom(rules, options = {}) {
   }
 
   function setPhase(playerId, phase) {
-    requireHost(playerId);
+    assertNotAgent(requireHost(playerId));
     const allowed = rules.phases();
     if (!allowed.includes(phase)) {
       const err = new Error("unknown phase");
@@ -502,7 +639,7 @@ function createRoom(rules, options = {}) {
   }
 
   function openWindow(hostId, opts = {}) {
-    const host = requireHost(hostId);
+    const host = assertNotAgent(requireHost(hostId));
     if (!canAdmin(host, "openWindow")) {
       const err = new Error("cannot open window now");
       err.code = "FORBIDDEN";
@@ -525,7 +662,7 @@ function createRoom(rules, options = {}) {
   }
 
   async function closeWindow(hostId, opts = {}) {
-    const host = requireHost(hostId);
+    const host = assertNotAgent(requireHost(hostId));
     if (!canAdmin(host, "closeWindow")) {
       const err = new Error("cannot close window now");
       err.code = "FORBIDDEN";
@@ -561,6 +698,7 @@ function createRoom(rules, options = {}) {
 
   function submit(playerId, text) {
     const player = requirePlayer(playerId);
+    assertDirectSeat(player);
     if (!player.alive) {
       const err = new Error("dead cannot submit");
       err.code = "FORBIDDEN";
@@ -596,7 +734,7 @@ function createRoom(rules, options = {}) {
   }
 
   function addBot(hostId, opts = {}) {
-    const host = requireHost(hostId);
+    const host = assertNotAgent(requireHost(hostId));
     if (!canAdmin(host, "addBot")) {
       const err = new Error("cannot add bot now");
       err.code = "FORBIDDEN";
@@ -609,7 +747,7 @@ function createRoom(rules, options = {}) {
   }
 
   function setAlive(hostId, seatId, alive) {
-    const host = requireHost(hostId);
+    const host = assertNotAgent(requireHost(hostId));
     if (!canAdmin(host, "setAlive")) {
       const err = new Error("cannot set alive now");
       err.code = "FORBIDDEN";
@@ -627,7 +765,7 @@ function createRoom(rules, options = {}) {
   }
 
   function resetGame(hostId) {
-    const host = requireHost(hostId);
+    const host = assertNotAgent(requireHost(hostId));
     if (!canAdmin(host, "resetGame")) {
       const err = new Error("cannot reset now");
       err.code = "FORBIDDEN";
@@ -666,7 +804,7 @@ function createRoom(rules, options = {}) {
   }
 
   function resetRoom(hostId) {
-    const host = requireHost(hostId);
+    const host = assertNotAgent(requireHost(hostId));
     if (!canAdmin(host, "resetRoom")) {
       const err = new Error("cannot clear table now");
       err.code = "FORBIDDEN";
@@ -679,6 +817,9 @@ function createRoom(rules, options = {}) {
     room.meta = {};
     room.players.clear();
     room.sessions.clear();
+    for (const token of room.mcpCredentials.keys()) rememberRevoked(token);
+    room.mcpCredentials.clear();
+    mcpDepth.clear();
     for (const key of Object.keys(room.channels)) {
       room.channels[key] = [];
     }
@@ -704,10 +845,41 @@ function createRoom(rules, options = {}) {
     return () => room._bus.off("update", fn);
   }
 
+  function waitForRevision(since, timeoutMs) {
+    const target = Number(since);
+    if (!Number.isFinite(target) || target < 0) {
+      const err = new Error("bad version");
+      err.code = "BAD_VERSION";
+      throw err;
+    }
+    if (room.revision > target) {
+      return Promise.resolve({ version: room.revision, timedOut: false });
+    }
+    const ms = Math.min(20000, Math.max(0, Number(timeoutMs) || 0));
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (timedOut) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        off();
+        resolve({ version: room.revision, timedOut });
+      };
+      const off = onUpdate(() => {
+        if (room.revision > target) finish(false);
+      });
+      const timer = setTimeout(() => finish(true), ms);
+    });
+  }
+
   return {
     join,
     joinBot,
+    joinAgent,
     joinPair,
+    credentialChannel,
+    requireMcpPlayer,
+    withMcpPlayer,
     announce,
     setTheme,
     applyTheme,
@@ -735,8 +907,15 @@ function createRoom(rules, options = {}) {
     viewFor,
     streamView,
     onUpdate,
+    waitForRevision,
     get phase() {
       return room.phase;
+    },
+    get revision() {
+      return room.revision;
+    },
+    get agentTransport() {
+      return agentTransport;
     },
     get joinPin() {
       return joinPin;

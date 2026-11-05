@@ -6,7 +6,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node server/rules/sandbox.selftest.js && node server/rules/town.selftest.js && node server/players/personality.selftest.js && node server/crisis/judge.selftest.js && node server/room.window.selftest.js && node server/room.reset.selftest.js && node server/room.session.selftest.js && node server/room.pair.selftest.js && node server/room.crisis.selftest.js && node server/room.ready.selftest.js && node server/room.vote.selftest.js && node server/room.night.selftest.js && node server/gm/gameMaster.selftest.js && node server/room.stream.selftest.js",
+    "test": "node server/rules/sandbox.selftest.js && node server/rules/town.selftest.js && node server/players/personality.selftest.js && node server/crisis/judge.selftest.js && node server/room.window.selftest.js && node server/room.reset.selftest.js && node server/room.session.selftest.js && node server/room.pair.selftest.js && node server/room.crisis.selftest.js && node server/room.ready.selftest.js && node server/room.vote.selftest.js && node server/room.night.selftest.js && node server/gm/gameMaster.selftest.js && node server/room.stream.selftest.js && node server/mcp/access.selftest.js && node server/mcp/builtin.selftest.js && node server/mcp/http.selftest.js",
     "test:stream": "node server/room.stream.selftest.js",
     "test:sandbox": "node server/rules/sandbox.selftest.js",
     "test:town": "node server/rules/town.selftest.js",
@@ -22,7 +22,12 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "express": "^4.21.2",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
   }
 }

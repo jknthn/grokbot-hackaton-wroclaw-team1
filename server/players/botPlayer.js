@@ -8,6 +8,11 @@ const { cannedLine } = require("./personality");
  */
 function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlayer } = {}) {
   const bot = existingPlayer || room.joinBot({ name });
+  if (bot.access === "mcp") {
+    const err = new Error("refusing to drive an MCP seat in-process");
+    err.code = "MCP_ONLY";
+    throw err;
+  }
   let lineIndex = 0;
   let busy = false;
 
