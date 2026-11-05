@@ -34,14 +34,23 @@ const voteLine = room.channels.public
   .join(" ");
 assert.ok(!/is a bot|is human|bot vs human|reveals? (bot|human)/i.test(voteLine));
 
-// No majority → nobody removed
+// Plurality: a single leading ballot is enough (no absolute majority required)
+room.systemSetPhase("talk");
 room.systemSetPhase("vote");
 const living2 = [...room.players.values()].filter((p) => p.alive);
-if (living2.length >= 2) {
-  room.handleAct(living2[0].id, "vote", { seatId: living2[1].seatId });
-  const r2 = room.resolveVote();
-  assert.strictEqual(r2.removed, null);
-  assert.strictEqual(room.phase, "vote");
-}
+assert.ok(living2.length >= 2);
+const victim = living2.find((p) => p.id !== human.id) || living2[1];
+room.handleAct(living2[0].id, "vote", { seatId: victim.seatId });
+// Others abstain — plurality of 1 still removes
+const r2 = room.resolveVote();
+assert.ok(r2.removed);
+assert.strictEqual(r2.removed.seatId, victim.seatId);
+assert.strictEqual(victim.alive, false);
+
+// No ballots → nobody removed
+room.systemSetPhase("talk");
+room.systemSetPhase("vote");
+const r3 = room.resolveVote();
+assert.strictEqual(r3.removed, null);
 
 console.log("room.vote.selftest: ok");

@@ -22,7 +22,7 @@ Humans and bots share one town under a lore theme. Kind is hidden. Talk → LLM-
 | Crisis | An LLM judges whether the city’s answers helped. Not a string-majority check |
 | Crisis outcome | Soft only: city points and/or slowdown. Never an automatic human death |
 | City points | Example spend: block the human the shadows targeted tonight |
-| Day vote | Majority of living seats removes a seat. Removal does **not** reveal bot vs human |
+| Day vote | Plurality of living seats removes a seat (tied leaders break at random). Removal does **not** reveal bot vs human |
 | Night | Living bots share an anonymous channel (`Shadow A`, `Shadow B`, …). Labels reshuffle every night. They do not learn which seat a shadow is |
 | Night kill | Each shadow votes a living **human** seat or passes. Majority of shadows decides. Humans-only targets |
 | Bot knowledge | Bots know they are bots. Team win: dead bots share it. Never confess |
@@ -91,8 +91,8 @@ Example prompts (the model judges the pile, not a shared password):
 ### 3. Day — vote
 
 - Living seats vote to remove one living seat (click seat / `act: vote`).
-- **Majority of living seats** is required. (Do not switch to “majority of votes cast” mid-demo.)
-- No majority → nobody removed; the day ends.
+- **Plurality** wins (most votes). Tied leaders break at random so the day still removes someone when ballots exist.
+- No valid ballots → nobody removed; the day ends.
 - The removed seat leaves play. **Bot vs human is not revealed.**
 - Win check.
 

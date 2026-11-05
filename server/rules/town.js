@@ -313,40 +313,50 @@ function resolveVotes(room) {
     tallies.set(targetSeat, (tallies.get(targetSeat) || 0) + 1);
   }
 
-  let bestSeat = null;
   let bestCount = 0;
+  const leaders = [];
   for (const [seatId, count] of tallies.entries()) {
     if (count > bestCount) {
       bestCount = count;
-      bestSeat = seatId;
+      leaders.length = 0;
+      leaders.push(seatId);
+    } else if (count === bestCount && count > 0) {
+      leaders.push(seatId);
     }
   }
 
-  const need = Math.floor(livingCount / 2) + 1;
-  if (bestSeat == null || bestCount < need) {
+  // Plurality: most votes wins. Absolute majority not required.
+  // Tied leaders → random among them so the day still removes someone.
+  if (bestCount < 1 || leaders.length === 0) {
     pushTown(
       room,
-      `Vote fails — need ${need} of ${livingCount}. Nobody leaves. Night is next.`,
+      `Vote fails — no ballots landed. Nobody leaves. Night is next.`,
       {
-        action: "NO MAJORITY",
-        detail: "The table could not agree. Night comes next.",
+        action: "NO VOTES",
+        detail: "The table cast no valid votes. Night comes next.",
       }
     );
     room.meta.votes = new Map();
     return { removed: null, winner: null };
   }
 
+  const tied = leaders.length > 1;
+  const bestSeat = tied
+    ? leaders[Math.floor(Math.random() * leaders.length)]
+    : leaders[0];
+
   const target = living.find((p) => p.seatId === bestSeat);
   if (target) {
     target.alive = false;
-    pushTown(
-      room,
-      `${target.name} is voted out (${bestCount}/${livingCount}). Kind stays hidden. Checking the town…`,
-      {
-        action: "VOTED OUT",
-        detail: `${target.name} leaves the table. Roles stay hidden.`,
-      }
-    );
+    const how = tied
+      ? `${target.name} is voted out after a ${bestCount}-vote tie (${bestCount}/${livingCount}). Kind stays hidden. Checking the town…`
+      : `${target.name} is voted out (plurality ${bestCount}/${livingCount}). Kind stays hidden. Checking the town…`;
+    pushTown(room, how, {
+      action: "VOTED OUT",
+      detail: tied
+        ? `${target.name} leaves after a tiebreak. Roles stay hidden.`
+        : `${target.name} leaves the table. Roles stay hidden.`,
+    });
   }
   room.meta.votes = new Map();
   return { removed: target || null, winner: checkWin(room) };
@@ -613,13 +623,12 @@ const town = {
     if (next === "vote") {
       room.meta.votes = new Map();
       const living = livingPlayers(room).length;
-      const need = Math.floor(living / 2) + 1;
       pushTown(
         room,
-        `VOTE. Click one living seat. Need ${need} of ${living} for a kick. Kind stays hidden — judge the words, not a label.`,
+        `VOTE. Click one living seat. Plurality wins (most votes; ties break at random). ${living} living. Kind stays hidden — judge the words, not a label.`,
         {
           action: "VOTE — CLICK A SEAT",
-          detail: `Majority is ${need}/${living}. Roles stay hidden.`,
+          detail: `Plurality of ${living} living. Roles stay hidden.`,
         }
       );
       return;
@@ -916,8 +925,8 @@ const town = {
         .join(", ");
       return (
         base +
-        " Day vote: pick ONE living seat from suspicious public speech only. " +
-        "Do not try to detect who is human vs bot. Do not pile onto the same seat every round. " +
+        " Day vote: pick ONE living seat from suspicious public speech. " +
+        "Do not try to detect who is human vs bot. Prefer converging on the seat the transcript makes look worst — plurality wins. " +
         `Candidates: ${seats || "none"}. Reply with only the seat number.`
       );
     }

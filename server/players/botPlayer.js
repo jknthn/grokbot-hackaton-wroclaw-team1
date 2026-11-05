@@ -213,9 +213,18 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
       return candidates[Math.floor(Math.random() * candidates.length)].seatId;
     }
 
+    // Offline / fallback: seed a shared focus so votes concentrate (plurality needs pile-on).
+    function focusCandidate() {
+      const seed =
+        (Number(view.meta?.nightsSurvived) || 0) * 17 +
+        (Number(view.meta?.livingCount) || candidates.length) * 3 +
+        candidates.length;
+      return candidates[Math.abs(seed) % candidates.length].seatId;
+    }
+
     const key = process.env.GROK_API_KEY;
     if (!key) {
-      return randomCandidate();
+      return Math.random() < 0.75 ? focusCandidate() : randomCandidate();
     }
     try {
       const prompt = view.botPrompt || `Vote for a seat.`;
@@ -238,12 +247,12 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
                   ? `Full town transcript so far:\n${history}\n\n`
                   : "No public transcript yet.\n\n") +
                 `Living seats: ${seats || "(none)"}\n` +
-                "Pick from suspicion in the transcript. Do not pile onto one seat every time. " +
+                "Pick the seat the transcript makes look worst. Prefer converging with likely town suspicion — plurality wins. " +
                 "Reply with ONLY the seat number integer to vote out.",
             },
           ],
           max_tokens: 20,
-          temperature: 0.7,
+          temperature: 0.55,
         }),
       });
       if (!res.ok) throw new Error(`grok http ${res.status}`);
@@ -252,10 +261,10 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
       const match = content.match(/-?\d+/);
       const seatId = match ? Number(match[0]) : NaN;
       if (candidates.some((c) => c.seatId === seatId)) return seatId;
-      return randomCandidate();
+      return focusCandidate();
     } catch (err) {
       console.warn("[bot] vote fallback:", err.message);
-      return randomCandidate();
+      return Math.random() < 0.75 ? focusCandidate() : randomCandidate();
     }
   }
 
