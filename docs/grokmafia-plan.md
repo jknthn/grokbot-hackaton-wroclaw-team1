@@ -1,3 +1,5 @@
+> **v1 product lock:** see [`locked-loop-v1.md`](locked-loop-v1.md). Solo bots who know they are bots; town hall only; talk → crisis → vote → night strike. The colluding-mafia private night channel below is **superseded for v1** (kept as historical / alternate Rules sketch). Kernel sections still apply.
+
 # GrokMafia — 3-Hour Multiagent Pitch
 
 ## One-line pitch
