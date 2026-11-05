@@ -4,9 +4,15 @@ Multiagent social deduction (Mafia-shaped) on a game-agnostic kernel: humans and
 
 ## Docs
 
-- [Project plan (Milestone 0+)](docs/grokmafia-plan.md)
+- **[Current status](docs/STATUS.md)** — live URL, PIN, M0 done / M1 next
+- [Project plan](docs/grokmafia-plan.md)
 - [M0 acceptance](docs/m0-acceptance.md)
 - [Pitch v0](docs/pitch-v0.md)
+
+## Live demo
+
+https://grokmafia-kernel.onrender.com · PIN **`4821`**  
+(Cold start on free Render can take ~1 minute.)
 
 ## Quick start (local)
 
