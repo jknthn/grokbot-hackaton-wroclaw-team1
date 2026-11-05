@@ -25,7 +25,7 @@ app.use(express.static(path.join(__dirname, "..", "public")));
 const room = createRoom(sandbox, { joinPin: JOIN_PIN });
 /** @type {Map<string, string>} socket.id → playerId */
 const socketPlayers = new Map();
-/** @type {Array<{ stop: () => void }>} */
+/** @type {Array<{ stop: () => void, player?: { id: string } }>} */
 const botHandles = [];
 
 function pushAll() {
@@ -52,6 +52,49 @@ function withPlayer(socket, fn) {
   }
 }
 
+function bindSocket(socket, player) {
+  for (const [sid, pid] of [...socketPlayers.entries()]) {
+    if (pid === player.id && sid !== socket.id) {
+      socketPlayers.delete(sid);
+      const old = io.sockets.sockets.get(sid);
+      if (old) old.emit("session_taken", {});
+    }
+  }
+  socketPlayers.set(socket.id, player.id);
+}
+
+function emitJoined(socket, player, ack) {
+  const view = room.viewFor(player.id);
+  const payload = {
+    playerId: player.id,
+    seatId: player.seatId,
+    token: player.sessionToken,
+  };
+  socket.emit("joined", payload);
+  socket.emit("state", { view });
+  pushAll();
+  if (typeof ack === "function") ack({ ok: true, ...payload });
+}
+
+function stopAllBots() {
+  for (const h of botHandles) h.stop();
+  botHandles.length = 0;
+}
+
+function seedAutoBot() {
+  if (!AUTO_BOT) return;
+  const handle = startBotPlayer(room, { name: process.env.BOT_NAME || "Grok-1" });
+  botHandles.push(handle);
+  console.log(`[bot] joined as ${handle.player.name} (seat ${handle.player.seatId})`);
+}
+
+function clearTableSockets() {
+  socketPlayers.clear();
+  for (const sock of io.sockets.sockets.values()) {
+    sock.emit("room_cleared", {});
+  }
+}
+
 io.on("connection", (socket) => {
   socket.on("join", (payload = {}, ack) => {
     try {
@@ -61,15 +104,22 @@ io.on("connection", (socket) => {
         pin: payload.pin,
         kind: "human",
       });
-      socketPlayers.set(socket.id, player.id);
-      const view = room.viewFor(player.id);
-      socket.emit("joined", { playerId: player.id, seatId: player.seatId });
-      socket.emit("state", { view });
-      pushAll();
-      if (typeof ack === "function") ack({ ok: true, playerId: player.id, seatId: player.seatId });
+      bindSocket(socket, player);
+      emitJoined(socket, player, ack);
     } catch (err) {
       const error = err.code || "JOIN_FAILED";
       socket.emit("error_msg", { error, message: err.message });
+      if (typeof ack === "function") ack({ ok: false, error, message: err.message });
+    }
+  });
+
+  socket.on("resume", (payload = {}, ack) => {
+    try {
+      const player = room.resume(payload.token);
+      bindSocket(socket, player);
+      emitJoined(socket, player, ack);
+    } catch (err) {
+      const error = err.code || "RESUME_FAILED";
       if (typeof ack === "function") ack({ ok: false, error, message: err.message });
     }
   });
@@ -127,17 +177,28 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("resetGame", () => {
+    withPlayer(socket, (playerId) => {
+      room.resetGame(playerId);
+    });
+  });
+
+  socket.on("resetRoom", () => {
+    withPlayer(socket, (playerId) => {
+      room.resetRoom(playerId);
+      stopAllBots();
+      clearTableSockets();
+      seedAutoBot();
+      pushAll();
+    });
+  });
+
   socket.on("disconnect", () => {
     socketPlayers.delete(socket.id);
-    // Keep player in room for M0 simplicity (reconnect = re-join as new seat)
   });
 });
 
-if (AUTO_BOT) {
-  const handle = startBotPlayer(room, { name: process.env.BOT_NAME || "Grok-1" });
-  botHandles.push(handle);
-  console.log(`[bot] joined as ${handle.player.name} (seat ${handle.player.seatId})`);
-}
+seedAutoBot();
 
 server.listen(PORT, HOST, () => {
   console.log("");
@@ -152,6 +213,6 @@ server.listen(PORT, HOST, () => {
 });
 
 process.on("SIGINT", () => {
-  for (const h of botHandles) h.stop();
+  stopAllBots();
   process.exit(0);
 });

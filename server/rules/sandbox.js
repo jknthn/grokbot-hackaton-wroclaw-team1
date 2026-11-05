@@ -23,6 +23,10 @@ const sandbox = {
     // no tags / roles in sandbox
   },
 
+  onReset(room) {
+    if (!room.channels.public) room.channels.public = [];
+  },
+
   canSay(player, channel, room) {
     if (!player.alive) return false;
     if (room.window) return false;

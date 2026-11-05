@@ -1,7 +1,14 @@
 /** Build per-player view using active rules. */
 
 const DEFAULT_ACT_TYPES = ["ready", "submit"];
-const ADMIN_TYPES = ["openWindow", "closeWindow", "addBot", "setAlive"];
+const ADMIN_TYPES = [
+  "openWindow",
+  "closeWindow",
+  "addBot",
+  "setAlive",
+  "resetGame",
+  "resetRoom",
+];
 
 function getView(room, playerId) {
   const player = room.players.get(playerId);

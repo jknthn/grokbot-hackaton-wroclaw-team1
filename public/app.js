@@ -1,4 +1,5 @@
 (() => {
+  const SESSION_KEY = "grokmafia.session";
   const socket = io();
 
   const joinScreen = document.getElementById("join-screen");
@@ -13,6 +14,8 @@
   const openWindowBtn = document.getElementById("open-window-btn");
   const closeWindowBtn = document.getElementById("close-window-btn");
   const addBotBtn = document.getElementById("add-bot-btn");
+  const resetGameBtn = document.getElementById("reset-game-btn");
+  const resetRoomBtn = document.getElementById("reset-room-btn");
   const table = document.getElementById("table");
   const chatWrap = document.getElementById("chat-wrap");
   const chat = document.getElementById("chat");
@@ -29,6 +32,7 @@
   let view = null;
   let lastPhase = null;
   let selectedSeatId = null;
+  let resumeAttempted = false;
 
   function showError(el, msg) {
     if (!msg) {
@@ -38,6 +42,60 @@
     }
     el.hidden = false;
     el.textContent = msg;
+  }
+
+  function saveSession(token) {
+    if (!token) return;
+    try {
+      localStorage.setItem(SESSION_KEY, token);
+    } catch (_) {
+      /* ignore quota / private mode */
+    }
+  }
+
+  function loadSession() {
+    try {
+      return localStorage.getItem(SESSION_KEY);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function clearSession() {
+    try {
+      localStorage.removeItem(SESSION_KEY);
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function enterGame() {
+    joinScreen.hidden = true;
+    game.hidden = false;
+  }
+
+  function leaveToJoin(message) {
+    view = null;
+    selectedSeatId = null;
+    lastPhase = null;
+    game.hidden = true;
+    joinScreen.hidden = false;
+    showError(joinError, message || "");
+    showError(gameError, "");
+  }
+
+  function tryResume() {
+    const token = loadSession();
+    if (!token || resumeAttempted) return;
+    resumeAttempted = true;
+    socket.emit("resume", { token }, (res) => {
+      if (res?.ok) {
+        saveSession(res.token);
+        enterGame();
+        return;
+      }
+      clearSession();
+    });
   }
 
   joinBtn.addEventListener("click", () => {
@@ -50,19 +108,33 @@
         showError(joinError, res?.message || "Join failed");
         return;
       }
-      joinScreen.hidden = true;
-      game.hidden = false;
+      saveSession(res.token);
+      enterGame();
     });
   });
 
-  socket.on("joined", () => {
-    joinScreen.hidden = true;
-    game.hidden = false;
+  socket.on("connect", () => {
+    resumeAttempted = false;
+    tryResume();
+  });
+
+  socket.on("joined", (payload) => {
+    if (payload?.token) saveSession(payload.token);
+    enterGame();
   });
 
   socket.on("state", (payload) => {
     view = payload.view;
     render();
+  });
+
+  socket.on("room_cleared", () => {
+    clearSession();
+    leaveToJoin("Table cleared — join again");
+  });
+
+  socket.on("session_taken", () => {
+    leaveToJoin("Session opened in another tab");
   });
 
   socket.on("error_msg", (payload) => {
@@ -79,6 +151,16 @@
 
   addBotBtn.addEventListener("click", () => {
     socket.emit("addBot", {});
+  });
+
+  resetGameBtn.addEventListener("click", () => {
+    if (!window.confirm("Reset round? Seats stay; chat and deaths clear.")) return;
+    socket.emit("resetGame");
+  });
+
+  resetRoomBtn.addEventListener("click", () => {
+    if (!window.confirm("Clear the whole table? Everyone must rejoin.")) return;
+    socket.emit("resetRoom");
   });
 
   sayForm.addEventListener("submit", (e) => {
@@ -132,6 +214,8 @@
     openWindowBtn.disabled = !admin.includes("openWindow") || Boolean(view.window?.open);
     closeWindowBtn.disabled = !admin.includes("closeWindow") || !view.window?.open;
     addBotBtn.disabled = !admin.includes("addBot");
+    resetGameBtn.disabled = !admin.includes("resetGame");
+    resetRoomBtn.disabled = !admin.includes("resetRoom");
   }
 
   function render() {

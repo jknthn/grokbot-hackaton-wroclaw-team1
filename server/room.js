@@ -15,6 +15,8 @@ function createRoom(rules, options = {}) {
     channels: { public: [] },
     window: null,
     nextSeat: 0,
+    /** @type {Map<string, string>} sessionToken → playerId */
+    sessions: new Map(),
     _bus: new EventEmitter(),
   };
 
@@ -97,15 +99,48 @@ function createRoom(rules, options = {}) {
       alive: true,
       tags: [],
       meta: {},
+      sessionToken: null,
     };
     // First human is host; or explicit host request if nobody is host yet. Bots never host.
     if (kind === "human" && !hasHost && (humansBefore === 0 || host)) {
       player.host = true;
     }
+    if (kind === "human") {
+      player.sessionToken = issueSession(player.id);
+    }
 
     room.players.set(player.id, player);
     if (typeof rules.onJoin === "function") rules.onJoin(room, player);
     emitUpdate();
+    return player;
+  }
+
+  function issueSession(playerId) {
+    const token = randomUUID();
+    room.sessions.set(token, playerId);
+    return token;
+  }
+
+  function resume(token) {
+    const key = String(token ?? "").trim();
+    if (!key) {
+      const err = new Error("session expired");
+      err.code = "NO_SESSION";
+      throw err;
+    }
+    const playerId = room.sessions.get(key);
+    if (!playerId) {
+      const err = new Error("session expired");
+      err.code = "NO_SESSION";
+      throw err;
+    }
+    const player = room.players.get(playerId);
+    if (!player || player.sessionToken !== key) {
+      room.sessions.delete(key);
+      const err = new Error("session expired");
+      err.code = "NO_SESSION";
+      throw err;
+    }
     return player;
   }
 
@@ -306,6 +341,59 @@ function createRoom(rules, options = {}) {
     return target;
   }
 
+  function resetGame(hostId) {
+    const host = requireHost(hostId);
+    if (!canAdmin(host, "resetGame")) {
+      const err = new Error("cannot reset now");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+
+    room.phase = rules.initialPhase();
+    room.window = null;
+    for (const key of Object.keys(room.channels)) {
+      room.channels[key] = [];
+    }
+    if (!room.channels.public) room.channels.public = [];
+
+    for (const player of listPlayers()) {
+      player.alive = true;
+      player.tags = [];
+      player.meta = {};
+    }
+
+    if (typeof rules.onReset === "function") {
+      rules.onReset(room);
+    }
+
+    emitUpdate();
+  }
+
+  function resetRoom(hostId) {
+    const host = requireHost(hostId);
+    if (!canAdmin(host, "resetRoom")) {
+      const err = new Error("cannot clear table now");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+
+    room.phase = rules.initialPhase();
+    room.window = null;
+    room.nextSeat = 0;
+    room.players.clear();
+    room.sessions.clear();
+    for (const key of Object.keys(room.channels)) {
+      room.channels[key] = [];
+    }
+    if (!room.channels.public) room.channels.public = [];
+
+    if (typeof rules.onReset === "function") {
+      rules.onReset(room);
+    }
+
+    emitUpdate();
+  }
+
   function viewFor(playerId) {
     return getView(room, playerId);
   }
@@ -326,6 +414,9 @@ function createRoom(rules, options = {}) {
     submit,
     addBot,
     setAlive,
+    resetGame,
+    resetRoom,
+    resume,
     viewFor,
     onUpdate,
     get phase() {

@@ -10,6 +10,7 @@
  * @property {boolean} alive
  * @property {string[]} tags
  * @property {Record<string, unknown>} [meta]
+ * @property {string|null} [sessionToken]
  *
  * @typedef {object} RoomState
  * @property {string} phase
@@ -23,6 +24,7 @@
  * @property {() => string[]} [actTypes]
  * @property {(room: RoomState) => void} [onStart]
  * @property {(room: RoomState, player: Player) => void} [onJoin]
+ * @property {(room: RoomState) => void} [onReset] Host resetGame/resetRoom: clear rules round state (tokens, votes, etc.)
  * @property {(player: Player, channel: string, room: RoomState) => boolean} canSay
  * @property {(player: Player, type: string, room: RoomState) => boolean} canAct
  * @property {(player: Player, type: string, room: RoomState) => boolean} [canAdmin]

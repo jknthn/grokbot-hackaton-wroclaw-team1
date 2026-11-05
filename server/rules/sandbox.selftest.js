@@ -34,6 +34,10 @@ assert.strictEqual(rules.canAct(player, "submit", roomTalk), false);
 assert.deepStrictEqual(rules.visibleChannels(player, roomTalk), ["public"]);
 assert.strictEqual(rules.onAct(roomTalk, player, "ready", {}).ok, true);
 assert.strictEqual(rules.canAdmin(player, "openWindow", roomTalk), true);
+assert.strictEqual(rules.canAdmin(player, "resetGame", roomTalk), true);
+assert.strictEqual(rules.canAdmin(player, "resetRoom", roomTalk), true);
+rules.onReset(roomTalk);
+assert.ok(Array.isArray(roomTalk.channels.public));
 
 const dead = { ...player, alive: false };
 assert.strictEqual(rules.canSay(dead, "public", roomTalk), false);

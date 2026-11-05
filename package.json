@@ -6,9 +6,11 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node server/rules/sandbox.selftest.js && node server/room.window.selftest.js",
+    "test": "node server/rules/sandbox.selftest.js && node server/room.window.selftest.js && node server/room.reset.selftest.js && node server/room.session.selftest.js",
     "test:sandbox": "node server/rules/sandbox.selftest.js",
-    "test:window": "node server/room.window.selftest.js"
+    "test:window": "node server/room.window.selftest.js",
+    "test:reset": "node server/room.reset.selftest.js",
+    "test:session": "node server/room.session.selftest.js"
   },
   "engines": {
     "node": ">=18"
