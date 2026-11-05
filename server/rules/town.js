@@ -155,12 +155,12 @@ function tallyShadowVotes(room) {
     if (!humanSeats.has(target)) continue;
     tallies.set(target, (tallies.get(target) || 0) + 1);
   }
-  // Demo balance: with a single living human, require unanimous shadow strikes
-  // (any PASS or split → quiet). Otherwise normal majority of living shadows.
-  const need =
-    humans.length <= 1
-      ? Math.max(1, shadows.length)
-      : Math.floor(shadows.length / 2) + 1;
+  // Single living human: 2/3 supermajority (not unanimous — one PASS shouldn't veto).
+  // Multiple humans: simple majority of living shadows.
+  const lonely = humans.length <= 1;
+  const need = lonely
+    ? Math.max(1, Math.ceil((shadows.length * 2) / 3))
+    : Math.floor(shadows.length / 2) + 1;
   let bestSeat = null;
   let bestCount = 0;
   for (const [seatId, count] of tallies.entries()) {
@@ -171,10 +171,10 @@ function tallyShadowVotes(room) {
   }
   if (bestSeat == null || bestCount < need) {
     room.meta.night.pendingTargetSeat = null;
-    return { target: null, bestCount, need, cast, passes, unanimous: humans.length <= 1 };
+    return { target: null, bestCount, need, cast, passes, supermajority: lonely };
   }
   room.meta.night.pendingTargetSeat = bestSeat;
-  return { target: bestSeat, bestCount, need, cast, passes, unanimous: humans.length <= 1 };
+  return { target: bestSeat, bestCount, need, cast, passes, supermajority: lonely };
 }
 
 function resolveNight(room) {
@@ -901,7 +901,7 @@ const town = {
       const list = targets.map((h) => `#${h.seatId} ${h.name}`).join(", ");
       const caution =
         targets.length <= 1
-          ? "Only one human target exists — prefer PASS unless the shadow chat strongly agrees. Unanimous strike is required."
+          ? "Only one human target — a 2/3 shadow supermajority lands the strike. Coordinate; PASS only if the chat is split."
           : "Strike only with clear shadow agreement; otherwise PASS.";
       return (
         base +
