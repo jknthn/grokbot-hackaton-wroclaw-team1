@@ -25,14 +25,17 @@ Grok replies work anywhere the server can call `api.x.ai` with `GROK_API_KEY`. P
 
 ### Option A — Render (GitHub Blueprint)
 
-1. Push this repo to GitHub (already on `origin`).
-2. [Render → New → Blueprint](https://dashboard.render.com/select-repo?type=blueprint) → select this repo (`render.yaml`).
-3. Set env:
-   - `JOIN_PIN` — pick a PIN (or use the generated one from the blueprint)
-   - `GROK_API_KEY` — optional; without it the bot uses canned lines
-4. Deploy → share `https://<service>.onrender.com` + PIN.
+1. Repo must be on GitHub `master` with `render.yaml` at the root (already pushed).
+2. [Render → New → Blueprint](https://dashboard.render.com/blueprints/new) → pick `jknthn/grokbot-hackaton-wroclaw-team1`.
+3. Form fields:
+   - **Blueprint Name:** `grokmafia` (any unique name)
+   - **Branch:** `master`
+   - **Blueprint Path:** leave empty (uses root `render.yaml`)
+4. Under services, **select / check** `grokmafia-kernel` so it is not “0 services selected”.
+5. **Deploy Blueprint**.
+6. Open the service URL; join with PIN `4821`. Optional: set `GROK_API_KEY` in the service env.
 
-Free tier may cold-sleep; wake with one request before the demo.
+Free tier may cold-sleep (~1 min wake); hit the URL once before the demo.
 
 ### Option B — Railway
 

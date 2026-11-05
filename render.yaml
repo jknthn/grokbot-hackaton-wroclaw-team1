@@ -1,8 +1,12 @@
+# Render Blueprint — New → Blueprint → this repo → branch master
+# Select the web service in the UI (must not stay "0 services selected"), then Deploy.
 services:
   - type: web
     name: grokmafia-kernel
     runtime: node
     plan: free
+    region: frankfurt
+    branch: master
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /
@@ -12,10 +16,11 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: JOIN_PIN
-        generateValue: true
+        value: "4821"
       - key: AUTO_BOT
         value: "1"
       - key: BOT_NAME
         value: Grok-1
+      # Set in Render dashboard after create (optional — canned bot without it)
       - key: GROK_API_KEY
         sync: false
