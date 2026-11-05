@@ -35,7 +35,7 @@ Town hall energy: shared table, public transcript, phase drama (`talk` → `cris
 --line: #3d2f24;
 ```
 
-Vibe: **North Jersey sit-down** (Sopranos-adjacent) — mahogany, gold, burgundy, industrial skyline, round “SIT-DOWN” table. Title in Cinzel; HUD/labels stay pixel (Press Start / VT323). Avoid trademarked names and purple “AI” looks.
+Vibe: **North Jersey sit-down** (Sopranos-adjacent) — mahogany, gold, burgundy, round “SIT-DOWN” table. Pixel **NYC skyline** backdrop: `public/assets/nyc-skyline.svg`. Title in Cinzel; HUD/labels stay pixel (Press Start / VT323). Avoid trademarked names and purple “AI” looks.
 
 ## Chrome
 

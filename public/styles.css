@@ -31,25 +31,29 @@ body {
   background-color: var(--bg);
   background-image:
     /* sodium streetlight */
-    radial-gradient(ellipse 90% 50% at 70% -10%, rgba(201, 162, 39, 0.16), transparent 50%),
+    radial-gradient(ellipse 90% 50% at 70% -10%, rgba(201, 162, 39, 0.14), transparent 50%),
     /* club neon bleed */
-    radial-gradient(ellipse 40% 30% at 10% 90%, rgba(139, 30, 45, 0.18), transparent 55%),
-    /* turnpike haze */
-    linear-gradient(180deg, rgba(15, 12, 10, 0.2) 0%, transparent 40%),
-    /* distant industrial NJ / skyline blocks */
-    linear-gradient(180deg, transparent 62%, #0a0806 62%),
-    repeating-linear-gradient(
-      90deg,
-      #0a0806 0 14px,
-      #15110e 14px 28px,
-      #0a0806 28px 36px,
-      #1a1410 36px 48px,
-      #0a0806 48px 58px,
-      #12100c 58px 72px,
-      #0a0806 72px 90px
-    ),
-    linear-gradient(165deg, #1a1412 0%, #0f0c0a 40%, #0a0806 100%);
+    radial-gradient(ellipse 40% 30% at 8% 85%, rgba(139, 30, 45, 0.16), transparent 55%),
+    /* night wash over skyline */
+    linear-gradient(180deg, rgba(15, 12, 10, 0.15) 0%, transparent 42%, rgba(10, 8, 6, 0.35) 70%, rgba(10, 8, 6, 0.75) 100%),
+    /* pixel NYC skyline */
+    url("/assets/nyc-skyline.svg"),
+    linear-gradient(165deg, #1a1412 0%, #0f0c0a 45%, #0a0806 100%);
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat-x, no-repeat;
+  background-position:
+    center top,
+    left bottom,
+    center center,
+    center bottom,
+    center center;
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    min(960px, 140vw) auto,
+    100% 100%;
   background-attachment: fixed;
+  image-rendering: pixelated;
 }
 
 body::before {
@@ -58,13 +62,8 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: 0;
-  opacity: 0.85;
   background:
-    radial-gradient(circle at 18% 70%, rgba(201, 162, 39, 0.5) 0 1.5px, transparent 2.5px),
-    radial-gradient(circle at 34% 66%, rgba(245, 236, 217, 0.35) 0 1px, transparent 2px),
-    radial-gradient(circle at 52% 72%, rgba(201, 162, 39, 0.4) 0 1px, transparent 2px),
-    radial-gradient(circle at 71% 68%, rgba(139, 30, 45, 0.55) 0 1.5px, transparent 2.5px),
-    radial-gradient(circle at 88% 74%, rgba(201, 162, 39, 0.35) 0 1px, transparent 2px);
+    radial-gradient(ellipse 70% 50% at 50% 40%, transparent 40%, rgba(7, 5, 4, 0.55) 100%);
 }
 
 .panel,
