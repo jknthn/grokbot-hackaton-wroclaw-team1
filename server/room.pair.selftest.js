@@ -14,7 +14,7 @@ assert.strictEqual(human.meta.pairedPlayerId, bot.id);
 assert.strictEqual(bot.meta.pairedPlayerId, human.id);
 
 const humanViewLobby = room.viewFor(human.id);
-assert.ok(!("kind" in humanViewLobby.you));
+assert.strictEqual(humanViewLobby.you.kind, "human");
 assert.ok(humanViewLobby.seats.every((s) => !("kind" in s)));
 assert.ok(humanViewLobby.allowed.admin.includes("startGame"));
 assert.ok(humanViewLobby.allowed.admin.includes("setTheme"));
@@ -58,7 +58,7 @@ assert.deepStrictEqual(idsAfter, idsBefore);
 
 const humanView = room.viewFor(human.id);
 assert.strictEqual(humanView.phase, "talk");
-assert.ok(!("kind" in humanView.you));
+assert.strictEqual(humanView.you.kind, "human");
 assert.ok(humanView.seats.every((s) => !("kind" in s)));
 assert.ok(!humanView.allowed.admin.includes("startGame"));
 assert.ok(!JSON.stringify(humanView).includes(bot.id));

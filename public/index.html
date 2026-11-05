@@ -28,6 +28,7 @@
       <header class="bar">
         <div>
           <strong id="phase-label" class="phase-hud">LOBBY</strong>
+          <span id="side-label" class="side-label" hidden></span>
           <span id="city-points" class="city-points" hidden>CITY PTS: 0</span>
           <span id="you-label" class="muted"></span>
         </div>
@@ -66,7 +67,13 @@
             <span id="vote-status">VOTE — click a living seat</span>
             <span id="vote-count" class="muted"></span>
           </div>
+          <div id="shadow-banner" class="window-banner shadow-banner" hidden>
+            <span id="shadow-status">SHADOW CHANNEL</span>
+            <span id="shadow-count" class="muted"></span>
+          </div>
           <div id="chat" class="chat"></div>
+          <div id="shadow-chat" class="chat shadow-chat" hidden></div>
+          <button id="block-night-btn" type="button" class="secondary" hidden>SPEND 1 PT TO BLOCK STRIKE</button>
           <form id="say-form" class="say">
             <input id="say-input" maxlength="280" placeholder="Be careful what you put on the record…" autocomplete="off" />
             <button type="submit">SAY</button>

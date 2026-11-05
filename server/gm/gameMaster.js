@@ -18,8 +18,17 @@ function livingCount(room) {
   return n;
 }
 
+function livingBots(room) {
+  return [...room.players.values()].filter((p) => p.alive && p.kind === "bot");
+}
+
 function votesCast(room) {
   const votes = room.meta?.votes;
+  return votes instanceof Map ? votes.size : 0;
+}
+
+function shadowVotesCast(room) {
+  const votes = room.meta?.night?.shadowVotes;
   return votes instanceof Map ? votes.size : 0;
 }
 
@@ -27,13 +36,19 @@ function startGameMaster(room, opts = {}) {
   const enabled = opts.enabled ?? process.env.GM_AUTO !== "0";
   const windowMs = Number(opts.windowMs || process.env.GM_WINDOW_MS || 45000);
   const voteMs = Number(opts.voteMs || process.env.GM_VOTE_MS || 45000);
-  const nightMs = Number(opts.nightMs || process.env.GM_NIGHT_MS || 8000);
+  const nightTalkMs = Number(opts.nightTalkMs || process.env.GM_NIGHT_TALK_MS || 20000);
+  const nightVoteMs = Number(opts.nightVoteMs || process.env.GM_NIGHT_VOTE_MS || 20000);
+  const nightDefendMs = Number(
+    opts.nightDefendMs || process.env.GM_NIGHT_DEFEND_MS || 12000
+  );
   const tickMs = Number(opts.tickMs || process.env.GM_TICK_MS || 1000);
 
   let busy = false;
   let stopped = false;
   let phaseStartedAt = Date.now();
+  let stageStartedAt = Date.now();
   let lastPhase = room.phase;
+  let lastNightStage = null;
   let windowOpenedForPhase = null;
   let starting = false;
 
@@ -41,7 +56,17 @@ function startGameMaster(room, opts = {}) {
     if (phase !== lastPhase) {
       lastPhase = phase;
       phaseStartedAt = Date.now();
+      stageStartedAt = Date.now();
       windowOpenedForPhase = null;
+      lastNightStage = room.meta?.night?.stage || null;
+    }
+  }
+
+  function markNightStage() {
+    const stage = room.meta?.night?.stage || null;
+    if (stage !== lastNightStage) {
+      lastNightStage = stage;
+      stageStartedAt = Date.now();
     }
   }
 
@@ -73,14 +98,12 @@ function startGameMaster(room, opts = {}) {
           index: room.meta.talkIndex || 0,
         });
         room.meta._gmTalkPrompt = prompt;
-        // Re-announce if phase already entered without GM prompt
         room.announce(`DAY: ${prompt}`);
         room.meta.talkPrompt = prompt;
       }
     }
     if (phase === "crisis") {
       if (!room.meta) room.meta = {};
-      // crisisPrompt usually set by onPhaseChange; optionally enrich once
       if (room.meta._wantGmCrisis) {
         const prompt = await writeCrisisPrompt(room.meta?.themeLabel, {
           index: room.meta.crisisIndex || 0,
@@ -114,6 +137,57 @@ function startGameMaster(room, opts = {}) {
       room.announce("Moving to VOTE — click a seat.");
     }
     room.systemSetPhase(nextPhase);
+  }
+
+  function finishNightToTalkOrEnd(result) {
+    if (result?.winner) return;
+    room.announce("Dawn. Another day begins.");
+    room.systemSetPhase("talk");
+  }
+
+  async function tickNight() {
+    markNightStage();
+    const stage = room.meta?.night?.stage || "talk";
+    const elapsed = Date.now() - stageStartedAt;
+    const bots = livingBots(room);
+
+    if (stage === "talk") {
+      if (elapsed >= nightTalkMs) {
+        room.announce("Shadow talk ends — strike votes.");
+        room.setNightStage("vote");
+      }
+      return;
+    }
+
+    if (stage === "vote") {
+      const cast = shadowVotesCast(room);
+      if ((bots.length > 0 && cast >= bots.length) || elapsed >= nightVoteMs) {
+        const tallied = room.tallyShadowVotes();
+        if (tallied.target == null) {
+          room.announce("No shadow majority — resolving a quiet night.");
+          const result = room.resolveNight();
+          finishNightToTalkOrEnd(result);
+          return;
+        }
+        const pts = Number(room.meta.cityPoints) || 0;
+        if (pts >= 1) {
+          room.announce("A strike is locked. City may spend 1 point to block.");
+          room.setNightStage("defend");
+        } else {
+          room.announce("Strike locked — no city points to spend.");
+          const result = room.resolveNight();
+          finishNightToTalkOrEnd(result);
+        }
+      }
+      return;
+    }
+
+    if (stage === "defend") {
+      if (room.meta?.night?.blocked || elapsed >= nightDefendMs) {
+        const result = room.resolveNight();
+        finishNightToTalkOrEnd(result);
+      }
+    }
   }
 
   async function tick() {
@@ -165,10 +239,7 @@ function startGameMaster(room, opts = {}) {
       }
 
       if (room.phase === "night") {
-        if (elapsed >= nightMs) {
-          room.announce("Dawn. Another day begins.");
-          room.systemSetPhase("talk");
-        }
+        await tickNight();
       }
     } catch (err) {
       console.warn("[gm]", err.message);
@@ -179,6 +250,7 @@ function startGameMaster(room, opts = {}) {
 
   const unsub = room.onUpdate(() => {
     markPhase(room.phase);
+    markNightStage();
   });
   const timer = setInterval(tick, tickMs);
   setTimeout(tick, 200);

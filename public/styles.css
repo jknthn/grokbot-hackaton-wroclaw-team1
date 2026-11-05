@@ -339,6 +339,35 @@ button:disabled {
   color: var(--accent);
 }
 
+.side-label {
+  margin-left: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.48rem;
+  letter-spacing: 0.06em;
+}
+
+.side-human {
+  color: #c9d4a8;
+}
+
+.side-bot {
+  color: #d4a0a8;
+}
+
+.shadow-banner {
+  color: #a8b8d4;
+}
+
+.shadow-chat {
+  max-height: 160px;
+  margin-top: 0.5rem;
+  border-color: #3a4558;
+}
+
+.msg-shadow .who {
+  color: #a8b8d4;
+}
+
 .vote-banner {
   border-color: var(--neon);
 }

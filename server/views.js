@@ -17,7 +17,6 @@ function getView(room, playerId) {
   if (!player) return null;
 
   const rules = room.rules;
-  const hideKind = typeof rules.hideKind === "function" ? rules.hideKind() : false;
   const seats = [...room.players.values()]
     .sort((a, b) => a.seatId - b.seatId)
     .map((seatPlayer) => rules.publicSeatFields(player, seatPlayer));
@@ -69,10 +68,9 @@ function getView(room, playerId) {
     name: player.name,
     host: player.host,
     alive: player.alive,
+    // Always know your own side; other seats stay kind-hidden via publicSeatFields.
+    kind: player.kind,
   };
-  if (!hideKind) {
-    you.kind = player.kind;
-  }
 
   const view = {
     phase: room.phase,

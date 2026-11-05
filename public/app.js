@@ -9,7 +9,13 @@
   const gameError = document.getElementById("game-error");
   const phaseLabel = document.getElementById("phase-label");
   const cityPoints = document.getElementById("city-points");
+  const sideLabel = document.getElementById("side-label");
   const youLabel = document.getElementById("you-label");
+  const shadowBanner = document.getElementById("shadow-banner");
+  const shadowStatus = document.getElementById("shadow-status");
+  const shadowCount = document.getElementById("shadow-count");
+  const shadowChat = document.getElementById("shadow-chat");
+  const blockNightBtn = document.getElementById("block-night-btn");
   const hostControls = document.getElementById("host-controls");
   const phaseButtons = document.getElementById("phase-buttons");
   const startGameBtn = document.getElementById("start-game-btn");
@@ -182,7 +188,11 @@
     e.preventDefault();
     const text = sayInput.value.trim();
     if (!text) return;
-    socket.emit("say", { channel: "public", text });
+    const channel =
+      view?.allowed?.say?.includes("shadow") && view.phase === "night"
+        ? "shadow"
+        : "public";
+    socket.emit("say", { channel, text });
     sayInput.value = "";
   });
 
@@ -197,6 +207,12 @@
   readyBtn.addEventListener("click", () => {
     socket.emit("act", { type: "ready", payload: {} });
   });
+
+  if (blockNightBtn) {
+    blockNightBtn.addEventListener("click", () => {
+      socket.emit("act", { type: "blockNight", payload: {} });
+    });
+  }
 
   function phaseHud(phase) {
     return String(phase || "lobby").toUpperCase();
@@ -288,6 +304,22 @@
     lastPhase = view.phase;
     const deadTag = view.you.alive ? "" : " · DEAD";
     youLabel.textContent = `${view.you.name} · #${view.you.seatId}${view.you.host ? " · HOST" : ""}${deadTag}`;
+
+    if (sideLabel) {
+      if (view.you.kind === "human") {
+        sideLabel.hidden = false;
+        sideLabel.textContent = "YOU ARE HUMAN";
+        sideLabel.className = "side-label side-human";
+      } else if (view.you.kind === "bot") {
+        sideLabel.hidden = false;
+        sideLabel.textContent = view.meta?.shadowLabel
+          ? `YOU ARE A BOT · ${view.meta.shadowLabel}`
+          : "YOU ARE A BOT";
+        sideLabel.className = "side-label side-bot";
+      } else {
+        sideLabel.hidden = true;
+      }
+    }
 
     const started = Boolean(view.lobby?.started) || (view.phase && view.phase !== "lobby");
     if (cityPoints) {
@@ -404,10 +436,57 @@
       .join("");
     chat.scrollTop = chat.scrollHeight;
 
-    const canSay = view.allowed.say.includes("public");
-    sayForm.hidden = windowOpen;
+    const canShadow = view.allowed.say.includes("shadow");
+    const showShadow =
+      view.phase === "night" &&
+      view.you.kind === "bot" &&
+      Array.isArray(view.channels.shadow);
+    if (shadowBanner) {
+      shadowBanner.hidden = !showShadow;
+      if (showShadow) {
+        shadowStatus.textContent = view.meta?.shadowLabel
+          ? `${view.meta.shadowLabel} · NIGHT`
+          : "SHADOW CHANNEL";
+        shadowCount.textContent =
+          view.meta?.nightStage === "vote"
+            ? `${view.meta.shadowVotesCast || 0}/${view.meta.shadowVotesNeeded || 0} strike votes`
+            : "whisper only";
+      }
+    }
+    if (shadowChat) {
+      shadowChat.hidden = !showShadow;
+      if (showShadow) {
+        const smsgs = view.channels.shadow || [];
+        shadowChat.innerHTML = smsgs
+          .map(
+            (m) =>
+              `<div class="msg msg-shadow"><span class="who">${escapeHtml(m.name)}</span>${escapeHtml(m.text)}</div>`
+          )
+          .join("");
+        shadowChat.scrollTop = shadowChat.scrollHeight;
+      }
+    }
+
+    if (blockNightBtn) {
+      const canBlock = Boolean(view.meta?.canBlockNight);
+      blockNightBtn.hidden = !canBlock;
+      blockNightBtn.disabled = !canBlock;
+    }
+
+    const canSay =
+      view.allowed.say.includes("public") ||
+      view.allowed.say.includes("shadow");
+    const sayChannel = view.allowed.say.includes("shadow")
+      ? "shadow"
+      : "public";
+    sayForm.hidden = windowOpen || !canSay;
     sayInput.disabled = !canSay;
     sayForm.querySelector("button").disabled = !canSay;
+    if (canShadow) {
+      sayInput.placeholder = "Shadow whisper…";
+    } else {
+      sayInput.placeholder = "Be careful what you put on the record…";
+    }
 
     const canSubmit = windowOpen && view.allowed.act.includes("submit");
     submitForm.hidden = !windowOpen;

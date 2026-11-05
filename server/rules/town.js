@@ -23,12 +23,187 @@ function livingPlayers(room) {
   return [...room.players.values()].filter((p) => p.alive);
 }
 
+function livingBots(room) {
+  return livingPlayers(room).filter((p) => p.kind === "bot");
+}
+
+function livingHumans(room) {
+  return livingPlayers(room).filter((p) => p.kind === "human");
+}
+
 function ensureVotes(room) {
   if (!room.meta) room.meta = {};
   if (!(room.meta.votes instanceof Map)) {
     room.meta.votes = new Map();
   }
   return room.meta.votes;
+}
+
+function ensureShadowVotes(room) {
+  if (!room.meta) room.meta = {};
+  if (!room.meta.night) room.meta.night = {};
+  if (!(room.meta.night.shadowVotes instanceof Map)) {
+    room.meta.night.shadowVotes = new Map();
+  }
+  return room.meta.night.shadowVotes;
+}
+
+function clearShadowLabels(room) {
+  for (const p of room.players.values()) {
+    if (p.meta) delete p.meta.shadowLabel;
+  }
+}
+
+function assignShadowLabels(room) {
+  clearShadowLabels(room);
+  const bots = livingBots(room);
+  const letters = bots.map((_, i) => String.fromCharCode(65 + i)); // A,B,C…
+  for (let i = letters.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letters[i], letters[j]] = [letters[j], letters[i]];
+  }
+  bots.forEach((bot, i) => {
+    if (!bot.meta) bot.meta = {};
+    bot.meta.shadowLabel = `Shadow ${letters[i]}`;
+  });
+}
+
+function beginNight(room) {
+  if (!room.channels.shadow) room.channels.shadow = [];
+  else room.channels.shadow = [];
+  assignShadowLabels(room);
+  room.meta.night = {
+    stage: "talk",
+    shadowVotes: new Map(),
+    pendingTargetSeat: null,
+    blocked: false,
+  };
+  const nShadows = livingBots(room).length;
+  pushTown(
+    room,
+    `NIGHT. Humans wait in the dark. ${nShadows} shadow(s) meet in secret — labels reshuffled.`,
+    {
+      action: "NIGHT — WAIT",
+      detail: "Humans: wait. Spend city points later if a strike is coming.",
+    }
+  );
+}
+
+function setNightStage(room, stage) {
+  if (!room.meta.night) room.meta.night = {};
+  room.meta.night.stage = stage;
+  if (stage === "vote") {
+    room.meta.night.shadowVotes = new Map();
+    room.meta.night.pendingTargetSeat = null;
+    room.meta.night.blocked = false;
+    const humans = livingHumans(room);
+    const list = humans.map((h) => `#${h.seatId} ${h.name}`).join(", ");
+    pushTown(
+      room,
+      "Shadows cast their strike votes (humans only — or pass).",
+      null
+    );
+    // Humans still only see wait guide; bots get meta via viewMeta
+    setGuide(
+      room,
+      "NIGHT — WAIT",
+      "Shadows are choosing. Hold steady."
+    );
+    room.meta.night._humanTargetsHint = list;
+  } else if (stage === "defend") {
+    const pts = Number(room.meta.cityPoints) || 0;
+    if (pts >= 1) {
+      setGuide(
+        room,
+        "NIGHT — BLOCK?",
+        `City has ${pts} point(s). Humans: spend 1 to block the strike (reads as a quiet night).`
+      );
+      pushTown(
+        room,
+        `A strike is forming. City may spend 1 point to block it (${pts} available).`,
+        null
+      );
+    } else {
+      setGuide(room, "NIGHT — WAIT", "No city points to spend. Strike resolves.");
+    }
+  } else if (stage === "talk") {
+    setGuide(
+      room,
+      "NIGHT — WAIT",
+      "Shadows are whispering. Humans cannot hear them."
+    );
+  }
+}
+
+function tallyShadowVotes(room) {
+  const shadows = livingBots(room);
+  const votes = ensureShadowVotes(room);
+  const humanSeats = new Set(livingHumans(room).map((h) => h.seatId));
+  const tallies = new Map();
+  let cast = 0;
+  for (const bot of shadows) {
+    if (!votes.has(bot.seatId)) continue;
+    cast += 1;
+    const target = votes.get(bot.seatId);
+    if (target == null) continue; // pass
+    if (!humanSeats.has(target)) continue;
+    tallies.set(target, (tallies.get(target) || 0) + 1);
+  }
+  const need = Math.floor(shadows.length / 2) + 1;
+  let bestSeat = null;
+  let bestCount = 0;
+  for (const [seatId, count] of tallies.entries()) {
+    if (count > bestCount) {
+      bestCount = count;
+      bestSeat = seatId;
+    }
+  }
+  if (bestSeat == null || bestCount < need) {
+    room.meta.night.pendingTargetSeat = null;
+    return { target: null, bestCount, need, cast };
+  }
+  room.meta.night.pendingTargetSeat = bestSeat;
+  return { target: bestSeat, bestCount, need, cast };
+}
+
+function resolveNight(room) {
+  if (!room.meta.night) room.meta.night = { stage: "done" };
+  const pending = room.meta.night.pendingTargetSeat;
+  const blocked = Boolean(room.meta.night.blocked);
+  clearShadowLabels(room);
+  room.meta.night.stage = "done";
+
+  if (pending == null || blocked) {
+    pushTown(
+      room,
+      blocked
+        ? "Quiet night. The city watch held (1 city point spent)."
+        : "Quiet night. The shadows found no majority.",
+      {
+        action: "QUIET NIGHT",
+        detail: "Dawn comes. No one vanished.",
+      }
+    );
+    room.meta.night.pendingTargetSeat = null;
+    room.meta.night.blocked = false;
+    return { killed: null, winner: checkWin(room), blocked };
+  }
+
+  const target = livingPlayers(room).find((p) => p.seatId === pending);
+  if (!target) {
+    pushTown(room, "Quiet night. The target was already gone.", {
+      action: "QUIET NIGHT",
+      detail: "Dawn comes.",
+    });
+    return { killed: null, winner: checkWin(room), blocked: false };
+  }
+  target.alive = false;
+  pushTown(room, `${target.name} vanished in the night.`, {
+    action: "VANISHED",
+    detail: `${target.name} is gone. Kind stays hidden.`,
+  });
+  room.meta.night.pendingTargetSeat = null;
+  return { killed: target, winner: checkWin(room), blocked: false };
 }
 
 function setGuide(room, action, detail) {
@@ -138,7 +313,7 @@ const town = {
   },
 
   actTypes() {
-    return ["ready", "submit", "vote"];
+    return ["ready", "submit", "vote", "shadowVote", "blockNight"];
   },
 
   onStart(room) {
@@ -169,6 +344,9 @@ const town = {
     room.meta.started = false;
     room.meta.votes = new Map();
     room.meta.winner = null;
+    room.meta.night = null;
+    if (room.channels) room.channels.shadow = [];
+    clearShadowLabels(room);
     for (const p of room.players.values()) {
       if (p.meta) {
         p.meta.ready = false;
@@ -209,6 +387,9 @@ const town = {
     room.meta.started = true;
     room.meta.votes = new Map();
     room.meta.winner = null;
+    room.meta.night = null;
+    if (!room.channels.shadow) room.channels.shadow = [];
+    else room.channels.shadow = [];
   },
 
   lobbySummary(room) {
@@ -252,6 +433,34 @@ const town = {
       guide: room.meta?.guide || null,
       lastTown: lastTown ? lastTown.text : null,
       livingCount: living.length,
+      nightStage: room.meta?.night?.stage || null,
+      shadowLabel: player?.meta?.shadowLabel || null,
+      canBlockNight:
+        room.phase === "night" &&
+        room.meta?.night?.stage === "defend" &&
+        player?.kind === "human" &&
+        player?.alive &&
+        (Number(room.meta?.cityPoints) || 0) >= 1 &&
+        !room.meta?.night?.blocked,
+      shadowVotesCast:
+        room.meta?.night?.shadowVotes instanceof Map
+          ? room.meta.night.shadowVotes.size
+          : 0,
+      shadowVotesNeeded: livingBots(room).length,
+      youShadowVoted:
+        room.meta?.night?.shadowVotes instanceof Map && player
+          ? room.meta.night.shadowVotes.has(player.seatId)
+          : false,
+      // Night only: shadows are told which seats are valid human targets (locked loop).
+      humanTargets:
+        player?.kind === "bot" &&
+        room.phase === "night" &&
+        room.meta?.night?.stage === "vote"
+          ? livingHumans(room).map((h) => ({
+              seatId: h.seatId,
+              name: h.name,
+            }))
+          : null,
     };
   },
 
@@ -277,6 +486,7 @@ const town = {
       return;
     }
     if (next === "talk") {
+      clearShadowLabels(room);
       if (room.meta._gmTalkPrompt) {
         room.meta.talkPrompt = room.meta._gmTalkPrompt;
         delete room.meta._gmTalkPrompt;
@@ -295,6 +505,7 @@ const town = {
         }
       );
       room.meta.votes = new Map();
+      room.meta.night = null;
       return;
     }
     if (next === "vote") {
@@ -313,14 +524,7 @@ const town = {
     }
     if (next === "night") {
       room.meta.votes = new Map();
-      pushTown(
-        room,
-        "NIGHT. Humans wait. Shadows would scheme here — tonight passes quietly. Dawn returns soon.",
-        {
-          action: "NIGHT — WAIT",
-          detail: "Quiet night stub. Next up: another day talk.",
-        }
-      );
+      beginNight(room);
       return;
     }
     if (next === "lobby") {
@@ -399,8 +603,17 @@ const town = {
     );
   },
 
-  canSay(_player, _channel, _room) {
-    // Scoring talk is window-only under GM loop.
+  canSay(player, channel, room) {
+    if (!player.alive) return false;
+    if (room.window) return false;
+    if (channel === "shadow") {
+      return (
+        room.phase === "night" &&
+        player.kind === "bot" &&
+        room.meta?.night?.stage === "talk"
+      );
+    }
+    // Public scoring talk is window-only under GM loop.
     return false;
   },
 
@@ -421,6 +634,21 @@ const town = {
       if (votes instanceof Map && votes.has(player.seatId)) return false;
       return true;
     }
+    if (type === "shadowVote") {
+      if (room.phase !== "night") return false;
+      if (player.kind !== "bot") return false;
+      if (room.meta?.night?.stage !== "vote") return false;
+      const votes = room.meta?.night?.shadowVotes;
+      if (votes instanceof Map && votes.has(player.seatId)) return false;
+      return true;
+    }
+    if (type === "blockNight") {
+      if (room.phase !== "night") return false;
+      if (player.kind !== "human") return false;
+      if (room.meta?.night?.stage !== "defend") return false;
+      if (room.meta?.night?.blocked) return false;
+      return (Number(room.meta?.cityPoints) || 0) >= 1;
+    }
     return false;
   },
 
@@ -440,7 +668,14 @@ const town = {
     return false;
   },
 
-  visibleChannels(_player, _room) {
+  visibleChannels(player, room) {
+    if (
+      room.phase === "night" &&
+      player.kind === "bot" &&
+      player.alive
+    ) {
+      return ["public", "shadow"];
+    }
     return ["public"];
   },
 
@@ -474,18 +709,71 @@ const town = {
       votes.set(player.seatId, targetSeat);
       return { ok: true, targetSeat };
     }
+    if (type === "shadowVote") {
+      const votes = ensureShadowVotes(room);
+      if (votes.has(player.seatId)) {
+        return { ok: false, error: "already voted" };
+      }
+      const pass = payload?.pass === true || payload?.seatId == null;
+      if (pass) {
+        votes.set(player.seatId, null);
+        return { ok: true, pass: true };
+      }
+      const targetSeat = Number(payload.seatId);
+      const human = livingHumans(room).find((h) => h.seatId === targetSeat);
+      if (!human) return { ok: false, error: "humans only" };
+      votes.set(player.seatId, targetSeat);
+      return { ok: true, targetSeat };
+    }
+    if (type === "blockNight") {
+      const pts = Number(room.meta.cityPoints) || 0;
+      if (pts < 1) return { ok: false, error: "no points" };
+      if (!room.meta.night) return { ok: false, error: "no night" };
+      if (room.meta.night.blocked) return { ok: false, error: "already blocked" };
+      room.meta.cityPoints = pts - 1;
+      room.meta.night.blocked = true;
+      pushTown(
+        room,
+        `The city spends 1 point on a watch (${room.meta.cityPoints} left).`,
+        {
+          action: "BLOCK SPENT",
+          detail: "If a strike was coming, it should fail quietly.",
+        }
+      );
+      return { ok: true, cityPoints: room.meta.cityPoints };
+    }
     return { ok: false, error: "unknown act" };
   },
 
   botPrompt(player, view) {
     const persona = player.meta?.persona || "A townsfolk with a careful tongue.";
     const flavor = formatForPrompt(player.meta?.personality);
+    const label = player.meta?.shadowLabel || view?.meta?.shadowLabel;
     const base =
       `You are a bot in a town game. Your public name is ${player.name}. ` +
       `Persona: ${persona}. ` +
       (flavor ? `${flavor} ` : "") +
       "Your team (all bots) wins together, including bots who die. Thin the humans. " +
       "Never confess you are a bot or an AI. Do not reveal who else might be a bot.";
+    if (view?.phase === "night" && view?.meta?.nightStage === "talk") {
+      return (
+        base +
+        ` Night shadow channel: you are ${label || "a shadow"} tonight (label reshuffles). ` +
+        "Other shadows do not share stable identities. Cooperate in ONE short line. Never use your lore name here."
+      );
+    }
+    if (view?.phase === "night" && view?.meta?.nightStage === "vote") {
+      const humans = (view.seats || [])
+        .filter((s) => s.alive)
+        .map((s) => `#${s.seatId} ${s.name}`)
+        .join(", ");
+      return (
+        base +
+        ` You are ${label || "a shadow"}. Vote to strike ONE living human seat, or pass. ` +
+        "Only humans are valid targets. You are not told which seats are bots. " +
+        `Living seats (pick a human by suspicion): ${humans || "none"}. Reply with seat number or PASS.`
+      );
+    }
     if (view?.phase === "vote") {
       const seats = (view.seats || [])
         .filter((s) => s.alive && s.seatId !== player.seatId)
@@ -519,6 +807,10 @@ const town = {
 
   checkWin,
   resolveVotes,
+  beginNight,
+  setNightStage,
+  tallyShadowVotes,
+  resolveNight,
   pushTown,
   TALK_PROMPTS,
   CRISIS_PROMPTS,

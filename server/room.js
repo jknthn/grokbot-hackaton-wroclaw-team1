@@ -349,6 +349,39 @@ function createRoom(rules, options = {}) {
     return result;
   }
 
+  function setNightStage(stage) {
+    if (typeof rules.setNightStage === "function") {
+      rules.setNightStage(room, stage);
+    } else {
+      if (!room.meta) room.meta = {};
+      if (!room.meta.night) room.meta.night = {};
+      room.meta.night.stage = stage;
+    }
+    emitUpdate();
+  }
+
+  function tallyShadowVotes() {
+    if (typeof rules.tallyShadowVotes !== "function") {
+      return { target: null };
+    }
+    const result = rules.tallyShadowVotes(room);
+    emitUpdate();
+    return result;
+  }
+
+  function resolveNight() {
+    if (typeof rules.resolveNight !== "function") {
+      return { killed: null, winner: null };
+    }
+    const result = rules.resolveNight(room);
+    if (result?.winner) {
+      room.meta.winner = result.winner;
+      systemSetPhase("ended");
+    }
+    emitUpdate();
+    return result;
+  }
+
   function issueSession(playerId) {
     const token = randomUUID();
     room.sessions.set(token, playerId);
@@ -410,9 +443,17 @@ function createRoom(rules, options = {}) {
       err.code = "FORBIDDEN";
       throw err;
     }
+    let displayName = player.name;
+    if (
+      channel === "shadow" &&
+      player.meta?.shadowLabel &&
+      room.phase === "night"
+    ) {
+      displayName = player.meta.shadowLabel;
+    }
     room.channels[channel].push({
       fromSeat: player.seatId,
-      name: player.name,
+      name: displayName,
       text: body,
       ts: Date.now(),
     });
@@ -681,6 +722,9 @@ function createRoom(rules, options = {}) {
     addBot,
     setAlive,
     resolveVote,
+    setNightStage,
+    tallyShadowVotes,
+    resolveNight,
     resetGame,
     resetRoom,
     resume,

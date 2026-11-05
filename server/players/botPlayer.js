@@ -28,6 +28,47 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
     const view = room.viewFor(bot.id);
     if (!view || !view.you.alive) return;
 
+    if (
+      view.phase === "night" &&
+      view.meta?.nightStage === "vote" &&
+      view.allowed.act.includes("shadowVote")
+    ) {
+      busy = true;
+      try {
+        const choice = await pickShadowVote(view);
+        if (choice && choice.pass) {
+          room.handleAct(bot.id, "shadowVote", { pass: true });
+        } else if (choice && choice.seatId != null) {
+          room.handleAct(bot.id, "shadowVote", { seatId: choice.seatId });
+        }
+      } catch (err) {
+        console.warn("[bot]", bot.name, err.message);
+      } finally {
+        busy = false;
+      }
+      return;
+    }
+
+    if (
+      view.phase === "night" &&
+      view.allowed.say.includes("shadow") &&
+      view.meta?.nightStage === "talk"
+    ) {
+      const msgs = view.channels.shadow || [];
+      const last = msgs[msgs.length - 1];
+      if (last && last.fromSeat === bot.seatId) return;
+      busy = true;
+      try {
+        const text = await pickLine(view);
+        if (text) room.handleSay(bot.id, "shadow", text);
+      } catch (err) {
+        console.warn("[bot]", bot.name, err.message);
+      } finally {
+        busy = false;
+      }
+      return;
+    }
+
     if (view.phase === "vote" && view.allowed.act.includes("vote")) {
       busy = true;
       try {
@@ -100,6 +141,57 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
       .filter((s) => s.alive)
       .map((s) => `#${s.seatId} ${s.name}`)
       .join(", ");
+  }
+
+  async function pickShadowVote(view) {
+    const humans = view.meta?.humanTargets || [];
+    if (!humans.length) return { pass: true };
+    function randomHuman() {
+      return humans[Math.floor(Math.random() * humans.length)].seatId;
+    }
+    const key = process.env.GROK_API_KEY;
+    if (!key) return { seatId: randomHuman() };
+    try {
+      const prompt = view.botPrompt || "Vote a human seat or PASS.";
+      const shadow = (view.channels?.shadow || [])
+        .slice(-12)
+        .map((m) => `${m.name}: ${m.text}`)
+        .join("\n");
+      const list = humans.map((h) => `#${h.seatId} ${h.name}`).join(", ");
+      const res = await fetch("https://api.x.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: process.env.GROK_MODEL || "grok-2-latest",
+          messages: [
+            { role: "system", content: prompt },
+            {
+              role: "user",
+              content:
+                (shadow ? `Shadow chat:\n${shadow}\n\n` : "") +
+                `Valid human targets: ${list}\n` +
+                "Reply with ONLY a seat number or the word PASS.",
+            },
+          ],
+          max_tokens: 20,
+          temperature: 0.6,
+        }),
+      });
+      if (!res.ok) throw new Error(`grok http ${res.status}`);
+      const data = await res.json();
+      const content = String(data.choices?.[0]?.message?.content || "");
+      if (/pass/i.test(content)) return { pass: true };
+      const match = content.match(/-?\d+/);
+      const seatId = match ? Number(match[0]) : NaN;
+      if (humans.some((h) => h.seatId === seatId)) return { seatId };
+      return { seatId: randomHuman() };
+    } catch (err) {
+      console.warn("[bot] shadow vote fallback:", err.message);
+      return { seatId: randomHuman() };
+    }
   }
 
   async function pickVoteTarget(view) {
