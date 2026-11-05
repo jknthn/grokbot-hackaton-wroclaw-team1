@@ -14,6 +14,7 @@
   const railEl = document.getElementById("stream-rail");
   const tableEl = document.getElementById("stream-table");
   const windowEl = document.getElementById("stream-window");
+  const windowPromptEl = document.getElementById("stream-window-prompt");
   const windowFillEl = document.getElementById("stream-window-fill");
   const windowCountEl = document.getElementById("stream-window-count");
   const voteEl = document.getElementById("stream-vote");
@@ -110,17 +111,21 @@
     themeEl.textContent = theme ? `· ${theme}` : "";
 
     const guide = view.meta?.guide;
+    const sealedPrompt =
+      view.meta?.crisisPrompt || view.meta?.talkPrompt || guide?.detail || "";
     let action = phase;
     let detail = "";
     let urgent = false;
 
     if (sealed) {
-      action = "SEALED WRITE";
-      detail = `Town writes blind — ${view.window.submitted}/${view.window.living || living || "?"} in`;
+      action = view.phase === "crisis" ? "CRISIS — ANSWER" : "DAY TALK — ANSWER";
+      detail = sealedPrompt
+        ? sealedPrompt
+        : `Town writes blind — ${view.window.submitted}/${view.window.living || living || "?"} in`;
       urgent = true;
     } else if (guide?.action || guide?.detail) {
       action = guide.action || phase;
-      detail = guide.detail || "";
+      detail = guide.detail || view.meta?.crisisPrompt || view.meta?.talkPrompt || "";
     } else if (view.meta?.lastTown) {
       action = phase;
       detail = view.meta.lastTown;
@@ -152,6 +157,7 @@
     actionEl.textContent = action;
     detailEl.textContent = detail;
     bannerEl.classList.toggle("is-urgent", urgent);
+    bannerEl.classList.toggle("is-prompt", Boolean(sealed && sealedPrompt));
 
     let centerSub = living ? `${living} living` : "empty";
     if (sealed) centerSub = "eyes down";
@@ -165,11 +171,19 @@
       const need = view.window.living || living || 1;
       const have = view.window.submitted || 0;
       const pct = Math.min(100, Math.round((have / need) * 100));
+      if (windowPromptEl) {
+        windowPromptEl.textContent = sealedPrompt || "One sealed line each.";
+        windowPromptEl.hidden = false;
+      }
       windowFillEl.style.width = `${pct}%`;
       windowCountEl.textContent = `${have} / ${need} sealed`;
     } else {
       windowEl.hidden = true;
       windowFillEl.style.width = "0%";
+      if (windowPromptEl) {
+        windowPromptEl.textContent = "";
+        windowPromptEl.hidden = true;
+      }
     }
 
     if (view.phase === "vote") {

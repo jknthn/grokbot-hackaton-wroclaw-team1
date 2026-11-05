@@ -401,21 +401,32 @@
 
     renderHostStrip();
 
-    if (nowAction && nowDetail) {
-      const guide = view.meta?.guide;
-      if (guide?.action) {
-        nowAction.textContent = guide.action;
-        nowDetail.textContent = guide.detail || view.meta?.lastTown || "";
-      } else {
-        nowAction.textContent = phaseHud(view.phase);
-        nowDetail.textContent = view.meta?.lastTown || "Watch Town lines in chat.";
-      }
-    }
-
     const windowOpen = Boolean(view.window?.open);
     const isCrisis = view.phase === "crisis";
     const isVote = view.phase === "vote";
     const isNight = view.phase === "night";
+    const activePrompt =
+      (isCrisis && view.meta?.crisisPrompt) ||
+      (view.phase === "talk" && view.meta?.talkPrompt) ||
+      (windowOpen && (view.meta?.crisisPrompt || view.meta?.talkPrompt)) ||
+      "";
+
+    if (nowAction && nowDetail) {
+      const guide = view.meta?.guide;
+      if (windowOpen && activePrompt) {
+        nowAction.textContent = isCrisis ? "CRISIS — ANSWER" : "DAY TALK — ANSWER";
+        nowDetail.textContent = activePrompt;
+      } else if (guide?.action) {
+        nowAction.textContent = guide.action;
+        nowDetail.textContent =
+          activePrompt || guide.detail || view.meta?.lastTown || "";
+      } else {
+        nowAction.textContent = phaseHud(view.phase);
+        nowDetail.textContent =
+          activePrompt || view.meta?.lastTown || "Watch Town lines in chat.";
+      }
+    }
+
     const humanNight = isNight && view.you.kind === "human";
     const canVote = isVote && view.allowed.act.includes("vote");
     if (nightVeil) {
@@ -424,22 +435,28 @@
     document.body.classList.toggle("night-human", humanNight);
     document.body.classList.toggle("night-bot", isNight && view.you.kind === "bot");
     chatWrap.classList.toggle("is-sealed", windowOpen);
+    document.body.classList.toggle("has-sealed-prompt", Boolean(windowOpen && activePrompt));
     windowBanner.hidden = !windowOpen;
     if (windowOpen) {
-      if (isCrisis) {
-        windowStatus.textContent = view.window.youSubmitted
-          ? "Crisis answer in — waiting on the table"
-          : "Crisis answer — others see the count";
-      } else {
-        windowStatus.textContent = view.window.youSubmitted
-          ? "You’re in — waiting on the table"
-          : "Blind write open";
-      }
-      windowCount.textContent = `${view.window.submitted} submitted`;
+      const waiting = view.window.youSubmitted;
+      windowStatus.textContent = activePrompt
+        ? activePrompt
+        : isCrisis
+          ? waiting
+            ? "Crisis answer in — waiting on the table"
+            : "Crisis answer — others see the count"
+          : waiting
+            ? "You’re in — waiting on the table"
+            : "Blind write open";
+      windowCount.textContent = waiting
+        ? `${view.window.submitted} in · you’re locked`
+        : `${view.window.submitted} submitted`;
       submitInput.maxLength = view.window.maxLen || 160;
-      submitInput.placeholder = isCrisis
-        ? "Answer the crisis…"
-        : "Blind line — others can’t see this yet…";
+      submitInput.placeholder = activePrompt
+        ? `Your answer — sealed (${view.window.maxLen || 160} max)`
+        : isCrisis
+          ? "Answer the crisis…"
+          : "Blind line — others can’t see this yet…";
     }
 
     if (voteBanner) {

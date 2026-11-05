@@ -226,6 +226,11 @@
   }
 }
 
+.stream-banner.is-prompt #stream-detail {
+  color: #f3e6c0;
+  font-size: 1.45rem;
+}
+
 .stream-banner {
   margin: 0;
   flex-shrink: 0;
@@ -378,7 +383,7 @@
   left: 50%;
   bottom: 0.65rem;
   transform: translateX(-50%);
-  width: min(90%, 280px);
+  width: min(92%, 420px);
   margin: 0;
   font-family: var(--font-display);
   color: var(--ink);
@@ -394,6 +399,16 @@
   font-size: 8px;
   color: var(--accent);
   letter-spacing: 0.08em;
+}
+
+.stream-window-prompt {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  line-height: 1.2;
+  color: #f3e6c0;
+  text-transform: none;
+  letter-spacing: 0.01em;
 }
 
 .stream-window-bar {
