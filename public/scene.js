@@ -18,7 +18,7 @@ const LOOKS = [
 const ROOM = { width: 15, depth: 14, height: 4.8 };
 const CAM_POS = [0.1, 2.42, 5.35];
 const CAM_LOOK = [0, 1.0, -0.45];
-const CAM_FOV = 38;
+const CAM_FOV = 42;
 
 const DAY = { hemi: 0.58, key: 2.7, fill: 1.05, chandelier: 7, fire: 4.5, exposure: 1.12, fog: 0.012 };
 const NIGHT = { hemi: 0.045, key: 0.08, fill: 0.12, chandelier: 22, fire: 28, exposure: 0.62, fog: 0.038 };
@@ -461,6 +461,9 @@ export function createTableScene(canvas, hooks = {}) {
   const camera = new THREE.PerspectiveCamera(CAM_FOV, 1, 0.08, 40);
   camera.position.set(CAM_POS[0], CAM_POS[1], CAM_POS[2]);
   camera.lookAt(CAM_LOOK[0], CAM_LOOK[1], CAM_LOOK[2]);
+  let camY = CAM_POS[1];
+  let camZ = CAM_POS[2];
+  let camLookY = CAM_LOOK[1];
 
   const floorTex = woodTexture(0x7a5434, 56, false);
   floorTex.repeat.set(4, 3);
@@ -980,8 +983,9 @@ export function createTableScene(canvas, hooks = {}) {
     });
     for (const rec of records.values()) updateCharacter(rec, t, dt);
     camera.position.x = CAM_POS[0] + Math.sin(t * 0.15) * 0.04;
-    camera.position.y = CAM_POS[1] + Math.sin(t * 0.11) * 0.015;
-    camera.lookAt(CAM_LOOK[0], CAM_LOOK[1], CAM_LOOK[2]);
+    camera.position.y = camY + Math.sin(t * 0.11) * 0.015;
+    camera.position.z = camZ;
+    camera.lookAt(CAM_LOOK[0], camLookY, CAM_LOOK[2]);
   }
 
   function setPointer(event) {
@@ -1012,11 +1016,41 @@ export function createTableScene(canvas, hooks = {}) {
     canvas.style.cursor = id != null && interactive ? "pointer" : "default";
   }
 
-  function onResize() {
-    camera.aspect = window.innerWidth / Math.max(1, window.innerHeight);
+  function frameCamera(width, height) {
+    const aspect = width / Math.max(1, height);
+    const short = height < 760;
+    const narrow = aspect < 1.15;
+    const wide = aspect > 1.6;
+    let fov = CAM_FOV;
+    camZ = CAM_POS[2];
+    camY = CAM_POS[1];
+    camLookY = CAM_LOOK[1];
+    if (short) {
+      fov += 10;
+      camZ += 1.05;
+      camY += 0.18;
+      camLookY -= 0.08;
+    } else if (wide) {
+      fov += 4;
+      camZ += 0.45;
+    }
+    if (narrow) {
+      fov += 6;
+      camZ += 0.55;
+    }
+    camera.fov = fov;
+    camera.aspect = aspect;
+    camera.position.set(CAM_POS[0], camY, camZ);
+    camera.lookAt(CAM_LOOK[0], camLookY, CAM_LOOK[2]);
     camera.updateProjectionMatrix();
+  }
+
+  function onResize() {
+    const width = Math.max(1, canvas.clientWidth || window.innerWidth);
+    const height = Math.max(1, canvas.clientHeight || window.innerHeight);
+    frameCamera(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height, false);
   }
 
   function onContextLost(event) {

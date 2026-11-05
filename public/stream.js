@@ -4,6 +4,7 @@
   const socket = io();
 
   const body = document.body;
+  const canvas = document.getElementById("stream-scene");
   const phaseEl = document.getElementById("stream-phase");
   const pointsEl = document.getElementById("stream-points");
   const seatsEl = document.getElementById("stream-seats");
@@ -12,7 +13,8 @@
   const detailEl = document.getElementById("stream-detail");
   const bannerEl = document.getElementById("stream-banner");
   const railEl = document.getElementById("stream-rail");
-  const tableEl = document.getElementById("stream-table");
+  const centerPhaseEl = document.getElementById("stream-center-phase");
+  const centerSubEl = document.getElementById("stream-center-sub");
   const windowEl = document.getElementById("stream-window");
   const windowPromptEl = document.getElementById("stream-window-prompt");
   const windowFillEl = document.getElementById("stream-window-fill");
@@ -32,6 +34,11 @@
   let focusSeatId = null;
   let focusLabel = "";
   let prevAlive = new Map();
+  let sceneApi = {
+    available: false,
+    sync() {},
+    destroy() {},
+  };
 
   function escapeHtml(s) {
     return String(s)
@@ -39,12 +46,6 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-  }
-
-  function shortName(name) {
-    const s = String(name || "?").trim();
-    if (s.length <= 10) return s;
-    return s.slice(0, 9) + "…";
   }
 
   function phaseHud(phase) {
@@ -67,6 +68,28 @@
       if (i === idx || (idx < 0 && p === current)) classes.push("is-now");
       return `<span class="${classes.join(" ")}">${p.toUpperCase()}</span>`;
     }).join("");
+  }
+
+  function syncScene() {
+    if (!view) {
+      sceneApi.sync({
+        phase: "lobby",
+        seats: [],
+        youSeatId: null,
+        speakerSeatId: null,
+        voteSeatId: null,
+        interactive: false,
+      });
+      return;
+    }
+    sceneApi.sync({
+      phase: view.phase,
+      seats: view.seats || [],
+      youSeatId: null,
+      speakerSeatId: lastSpeakerSeat,
+      voteSeatId: focusSeatId,
+      interactive: false,
+    });
   }
 
   socket.on("connect", () => {
@@ -166,6 +189,9 @@
     else if (view.phase === "crisis") centerSub = "crisis";
     else if (view.phase === "ended") centerSub = view.meta?.winner || "done";
 
+    if (centerPhaseEl) centerPhaseEl.textContent = phase;
+    if (centerSubEl) centerSubEl.textContent = centerSub;
+
     if (sealed) {
       windowEl.hidden = false;
       const need = view.window.living || living || 1;
@@ -233,37 +259,7 @@
       }
     }
 
-    tableEl.innerHTML = "";
-    const center = document.createElement("div");
-    center.id = "stream-center";
-    center.className = "stream-center";
-    center.innerHTML = `<span id="stream-center-phase">${escapeHtml(phase)}</span><span id="stream-center-sub" class="muted">${escapeHtml(centerSub)}</span>`;
-    tableEl.appendChild(center);
-
-    const n = Math.max(seats.length, 1);
-    seats.forEach((seat, i) => {
-      const el = document.createElement("div");
-      const classes = ["seat"];
-      if (!seat.alive) classes.push("dead");
-      if (seat.alive && sealed) classes.push("is-writing");
-      if (seat.alive && !sealed && seat.seatId === lastSpeakerSeat) {
-        classes.push("is-speaking");
-      }
-      if (seat.seatId === focusSeatId) classes.push("is-focus");
-      if (view.phase === "night" && seat.alive) classes.push("silhouette");
-      el.className = classes.join(" ");
-      const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
-      const r = 38;
-      el.style.left = `${50 + r * Math.cos(angle)}%`;
-      el.style.top = `${50 + r * Math.sin(angle)}%`;
-      const label =
-        view.phase === "night" && seat.alive
-          ? `<span class="hood-icon"></span><span>?</span>`
-          : `<span>${escapeHtml(shortName(seat.name))}</span><span class="kind">#${seat.seatId}</span>`;
-      el.innerHTML = label;
-      el.title = seat.alive ? seat.name : `${seat.name} (out)`;
-      tableEl.appendChild(el);
-    });
+    syncScene();
 
     chatMetaEl.textContent = msgs.length ? `${msgs.length} lines` : "";
     const nearBottom =
@@ -284,4 +280,20 @@
     }
     lastMsgCount = msgs.length;
   }
+
+  async function initScene() {
+    try {
+      const mod = await import("./scene.js");
+      sceneApi = mod.createTableScene(canvas, {
+        onUnavailable: () => {
+          console.warn("[stream] WebGL unavailable — HUD still runs");
+        },
+      });
+      syncScene();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  initScene();
 })();

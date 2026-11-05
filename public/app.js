@@ -47,6 +47,8 @@
   const nowAction = document.getElementById("now-action");
   const nowDetail = document.getElementById("now-detail");
   const nightVeil = document.getElementById("night-veil");
+  const seatPicker = document.getElementById("seat-picker");
+  const seatPickerButtons = document.getElementById("seat-picker-buttons");
   const readyBtn = document.getElementById("ready-btn");
 
   let view = null;
@@ -205,6 +207,50 @@
     });
   }
 
+  function renderSeatPicker() {
+    if (!seatPicker || !seatPickerButtons) return;
+    if (!view) {
+      seatPicker.hidden = true;
+      return;
+    }
+    const acts = view.allowed.act || [];
+    const admin = view.allowed.admin || [];
+    const canVote = acts.includes("vote");
+    const canKill = admin.includes("setAlive") && view.phase !== "vote";
+    const show = canVote || (canKill && sceneState === "failed");
+    seatPicker.hidden = !show;
+    if (!show) {
+      seatPickerButtons.innerHTML = "";
+      return;
+    }
+    const label = seatPicker.querySelector(".seat-picker-label");
+    if (label) {
+      label.textContent = canVote
+        ? view.meta?.youVoted
+          ? "YOUR VOTE"
+          : "VOTE — TAP A NAME"
+        : "HOST — TAP TO KILL / REVIVE";
+    }
+    seatPickerButtons.innerHTML = "";
+    view.seats.forEach((seat) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = seat.alive
+        ? `#${seat.seatId} ${shortName(seat.name)}`
+        : `#${seat.seatId} ${shortName(seat.name)} (out)`;
+      if (seat.seatId === view.you.seatId) btn.classList.add("is-you");
+      if (
+        selectedSeatId === seat.seatId ||
+        (canVote && view.meta?.yourVoteTarget === seat.seatId)
+      ) {
+        btn.classList.add("is-selected");
+      }
+      if (canVote && !seat.alive) btn.disabled = true;
+      btn.addEventListener("click", () => onSeatClick(seat.seatId));
+      seatPickerButtons.appendChild(btn);
+    });
+  }
+
   function syncScene() {
     if (!view) {
       sceneApi.sync({
@@ -216,6 +262,7 @@
         interactive: false,
       });
       renderSeatFallback();
+      renderSeatPicker();
       return;
     }
     const admin = view.allowed.admin || [];
@@ -233,6 +280,7 @@
       interactive: admin.includes("setAlive") || acts.includes("vote"),
     });
     renderSeatFallback();
+    renderSeatPicker();
   }
 
   function tryResume() {

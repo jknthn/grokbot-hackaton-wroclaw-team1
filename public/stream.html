@@ -12,8 +12,17 @@
     />
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/stream.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/build/three.module.js"
+        }
+      }
+    </script>
   </head>
   <body class="stream-body phase-lobby">
+    <canvas id="stream-scene" aria-label="Dining hall broadcast"></canvas>
+
     <div class="stream-shell">
       <header class="stream-top">
         <div class="stream-brand">
@@ -43,11 +52,9 @@
       <main class="stream-main">
         <section class="stream-table-wrap">
           <p id="stream-focus-tag" class="stream-focus-tag" hidden></p>
-          <div id="stream-table" class="table stream-table" aria-label="Seats">
-            <div id="stream-center" class="stream-center">
-              <span id="stream-center-phase">LOBBY</span>
-              <span id="stream-center-sub" class="muted"></span>
-            </div>
+          <div id="stream-center" class="stream-center stream-center-overlay">
+            <span id="stream-center-phase">LOBBY</span>
+            <span id="stream-center-sub" class="muted"></span>
           </div>
           <div id="stream-window" class="stream-window" hidden>
             <div class="stream-window-label">SEALED WRITE</div>
