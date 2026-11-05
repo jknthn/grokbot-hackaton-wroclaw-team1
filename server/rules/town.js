@@ -7,6 +7,11 @@ const { rollPersonality, formatForPrompt } = require("../players/personality");
 
 const PHASES = ["lobby", "talk", "crisis", "vote", "night", "ended"];
 
+/** Nights humans must survive (still alive) to win on underdog tables. */
+const SURVIVE_NIGHTS = 3;
+/** City points that win for humans on underdog tables. */
+const CITY_POINT_GOAL = 4;
+
 const CRISIS_PROMPTS = [
   "The well is failing. What do we do before night?",
   "Four rumors are circulating. Which ones should the town act on?",
@@ -183,6 +188,7 @@ function resolveNight(room) {
   clearShadowLabels(room);
   room.meta.night.stage = "done";
 
+  let killed = null;
   if (pending == null || blocked) {
     pushTown(
       room,
@@ -196,24 +202,28 @@ function resolveNight(room) {
     );
     room.meta.night.pendingTargetSeat = null;
     room.meta.night.blocked = false;
-    return { killed: null, winner: checkWin(room), blocked };
+  } else {
+    const target = livingPlayers(room).find((p) => p.seatId === pending);
+    if (!target) {
+      pushTown(room, "Quiet night. The target was already gone.", {
+        action: "QUIET NIGHT",
+        detail: "Dawn comes.",
+      });
+    } else {
+      target.alive = false;
+      killed = target;
+      pushTown(room, `${target.name} vanished in the night.`, {
+        action: "VANISHED",
+        detail: `${target.name} is gone. Kind stays hidden.`,
+      });
+    }
+    room.meta.night.pendingTargetSeat = null;
   }
 
-  const target = livingPlayers(room).find((p) => p.seatId === pending);
-  if (!target) {
-    pushTown(room, "Quiet night. The target was already gone.", {
-      action: "QUIET NIGHT",
-      detail: "Dawn comes.",
-    });
-    return { killed: null, winner: checkWin(room), blocked: false };
+  if (livingHumans(room).length > 0) {
+    room.meta.nightsSurvived = (Number(room.meta.nightsSurvived) || 0) + 1;
   }
-  target.alive = false;
-  pushTown(room, `${target.name} vanished in the night.`, {
-    action: "VANISHED",
-    detail: `${target.name} is gone. Kind stays hidden.`,
-  });
-  room.meta.night.pendingTargetSeat = null;
-  return { killed: target, winner: checkWin(room), blocked: false };
+  return { killed, winner: checkWin(room), blocked };
 }
 
 function setGuide(room, action, detail) {
@@ -240,12 +250,57 @@ function pushTown(room, text, guide) {
   }
 }
 
+function winModeOf(room) {
+  const mode = room.meta?.winMode;
+  if (mode === "parity" || mode === "survival") return mode;
+  // Safer default for underdog / 1-human demos: never call the game on parity alone.
+  return "survival";
+}
+
+function explainWin(room, winner) {
+  if (!winner) return "";
+  const humans = livingHumans(room).length;
+  const bots = livingBots(room).length;
+  if (winner === "humans") {
+    if (bots === 0) return "No shadows remain at the table.";
+    const nights = Number(room.meta?.nightsSurvived) || 0;
+    const needNights = Number(room.meta?.surviveNights) || SURVIVE_NIGHTS;
+    if (nights >= needNights) {
+      return `The town held through ${nights} night(s).`;
+    }
+    const pts = Number(room.meta?.cityPoints) || 0;
+    const needPts = Number(room.meta?.cityPointGoal) || CITY_POINT_GOAL;
+    if (pts >= needPts) {
+      return `City points hit ${pts} (goal ${needPts}).`;
+    }
+    return "Humans take the table.";
+  }
+  if (humans === 0) return "No humans remain at the table.";
+  if (winModeOf(room) === "parity") {
+    return "Living humans could not outnumber the shadows.";
+  }
+  return "The shadows emptied the town of humans.";
+}
+
 function checkWin(room) {
   const living = livingPlayers(room);
   const humans = living.filter((p) => p.kind === "human").length;
   const bots = living.filter((p) => p.kind === "bot").length;
-  if (bots === 0) return "humans";
-  if (humans <= bots) return "bots";
+  if (bots === 0 && humans > 0) return "humans";
+  if (humans === 0 && bots > 0) return "bots";
+  if (humans === 0 && bots === 0) return "bots";
+
+  const mode = winModeOf(room);
+  if (mode === "parity" && humans <= bots) return "bots";
+
+  if (mode === "survival") {
+    const nights = Number(room.meta?.nightsSurvived) || 0;
+    const needNights = Number(room.meta?.surviveNights) || SURVIVE_NIGHTS;
+    if (nights >= needNights) return "humans";
+    const pts = Number(room.meta?.cityPoints) || 0;
+    const needPts = Number(room.meta?.cityPointGoal) || CITY_POINT_GOAL;
+    if (pts >= needPts) return "humans";
+  }
   return null;
 }
 
@@ -355,6 +410,11 @@ const town = {
     room.meta.votes = new Map();
     room.meta.winner = null;
     room.meta.night = null;
+    room.meta.winMode = null;
+    room.meta.nightsSurvived = 0;
+    room.meta.surviveNights = SURVIVE_NIGHTS;
+    room.meta.cityPointGoal = CITY_POINT_GOAL;
+    room.meta.winReason = null;
     if (room.channels) room.channels.shadow = [];
     clearShadowLabels(room);
     for (const p of room.players.values()) {
@@ -397,9 +457,38 @@ const town = {
     room.meta.started = true;
     room.meta.votes = new Map();
     room.meta.winner = null;
+    room.meta.winReason = null;
     room.meta.night = null;
+    room.meta.nightsSurvived = 0;
+    room.meta.surviveNights = SURVIVE_NIGHTS;
+    room.meta.cityPointGoal = CITY_POINT_GOAL;
+    const startHumans = players.filter((p) => p.kind === "human").length;
+    const startBots = players.filter((p) => p.kind === "bot").length;
+    room.meta.startHumans = startHumans;
+    room.meta.startBots = startBots;
+    // Classic parity only when humans begin with a strict majority.
+    room.meta.winMode = startHumans > startBots ? "parity" : "survival";
     if (!room.channels.shadow) room.channels.shadow = [];
     else room.channels.shadow = [];
+    if (room.meta.winMode === "parity") {
+      pushTown(
+        room,
+        `Win rules: humans hold the majority. Wipe every shadow — or shadows win at parity.`,
+        {
+          action: "WIN RULES",
+          detail: "Humans must stay ahead in numbers. Shadows win at parity.",
+        }
+      );
+    } else {
+      pushTown(
+        room,
+        `Win rules: underdog table. Shadows win only by wiping every human. Humans win by surviving ${SURVIVE_NIGHTS} nights, reaching ${CITY_POINT_GOAL} city points, or wiping every shadow.`,
+        {
+          action: "WIN RULES",
+          detail: `Survive ${SURVIVE_NIGHTS} nights or hit ${CITY_POINT_GOAL} city points.`,
+        }
+      );
+    }
   },
 
   lobbySummary(room) {
@@ -432,10 +521,15 @@ const town = {
     const lastTown = [...publicMsgs].reverse().find((m) => m.name === "Town");
     return {
       cityPoints: Number(room.meta?.cityPoints) || 0,
+      cityPointGoal: Number(room.meta?.cityPointGoal) || CITY_POINT_GOAL,
       slowdown: room.meta?.slowdown ?? null,
       crisisPrompt: room.meta?.crisisPrompt ?? null,
       talkPrompt: room.meta?.talkPrompt ?? null,
       winner: room.meta?.winner ?? null,
+      winMode: winModeOf(room),
+      winReason: room.meta?.winReason ?? null,
+      nightsSurvived: Number(room.meta?.nightsSurvived) || 0,
+      surviveNights: Number(room.meta?.surviveNights) || SURVIVE_NIGHTS,
       votesCast: votes ? votes.size : 0,
       votesNeeded: living.length,
       youVoted: yourVote !== undefined,
@@ -547,17 +641,18 @@ const town = {
     }
     if (next === "ended") {
       const w = room.meta.winner;
+      const reason = room.meta.winReason || explainWin(room, w);
+      room.meta.winReason = reason;
       if (w === "humans") {
-        pushTown(
-          room,
-          "ENDED — humans win. No bots remain at the table.",
-          { action: "HUMANS WIN", detail: "Reset game or clear table for another sit-down." }
-        );
+        pushTown(room, `ENDED — humans win. ${reason}`, {
+          action: "HUMANS WIN",
+          detail: reason,
+        });
       } else if (w === "bots") {
         pushTown(
           room,
-          "ENDED — bots win as a team (dead bots share it). Living humans could not outnumber them.",
-          { action: "BOTS WIN", detail: "Reset game or clear table for another sit-down." }
+          `ENDED — bots win as a team (dead bots share it). ${reason}`,
+          { action: "BOTS WIN", detail: reason }
         );
       } else {
         pushTown(room, "ENDED.", { action: "ENDED", detail: "Round over." });
@@ -766,11 +861,17 @@ const town = {
     const persona = player.meta?.persona || "A townsfolk with a careful tongue.";
     const flavor = formatForPrompt(player.meta?.personality);
     const label = player.meta?.shadowLabel || view?.meta?.shadowLabel;
+    const mode = view?.meta?.winMode || "survival";
+    const winLine =
+      mode === "parity"
+        ? "Your team wins at parity (living humans ≤ living bots) or by wiping humans. "
+        : "Underdog table: your team wins only by wiping every living human — parity alone is not enough. Stop humans from surviving the night clock or banking city points. ";
     const base =
       `You are a bot in a town game. Your public name is ${player.name}. ` +
       `Persona: ${persona}. ` +
       (flavor ? `${flavor} ` : "") +
       "Your team (all bots) wins together, including bots who die. Blend in by day. " +
+      winLine +
       "Never confess you are a bot or an AI. Do not reveal who else might be a bot.";
     if (view?.phase === "night" && view?.meta?.nightStage === "talk") {
       return (
@@ -825,6 +926,10 @@ const town = {
   },
 
   checkWin,
+  explainWin,
+  winModeOf,
+  SURVIVE_NIGHTS,
+  CITY_POINT_GOAL,
   resolveVotes,
   beginNight,
   setNightStage,

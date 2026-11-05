@@ -71,6 +71,8 @@ const resolved = room.resolveNight();
 assert.strictEqual(resolved.killed, null);
 assert.ok(resolved.blocked);
 assert.ok(human.alive);
+assert.strictEqual(resolved.winner, null);
+assert.notStrictEqual(room.phase, "ended");
 assert.ok(room.channels.public.some((m) => /Quiet night/i.test(m.text)));
 
 // Second night: unanimous kill without block
@@ -86,6 +88,8 @@ room.meta.cityPoints = 0;
 const kill = room.resolveNight();
 assert.ok(kill.killed);
 assert.strictEqual(human.alive, false);
+assert.strictEqual(kill.winner, "bots");
+assert.strictEqual(room.phase, "ended");
 assert.ok(room.channels.public.some((m) => /vanished/i.test(m.text)));
 
 console.log("room.night.selftest: ok");

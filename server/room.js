@@ -332,6 +332,16 @@ function createRoom(rules, options = {}) {
     if (typeof rules.onCloseWindow === "function") {
       await rules.onCloseWindow(room, revealed);
     }
+    if (typeof rules.checkWin === "function") {
+      const winner = rules.checkWin(room);
+      if (winner) {
+        room.meta.winner = winner;
+        if (typeof rules.explainWin === "function") {
+          room.meta.winReason = rules.explainWin(room, winner);
+        }
+        systemSetPhase("ended");
+      }
+    }
     emitUpdate();
     return revealed;
   }
@@ -343,6 +353,9 @@ function createRoom(rules, options = {}) {
     const result = rules.resolveVotes(room);
     if (result?.winner) {
       room.meta.winner = result.winner;
+      if (typeof rules.explainWin === "function") {
+        room.meta.winReason = rules.explainWin(room, result.winner);
+      }
       systemSetPhase("ended");
     }
     emitUpdate();
@@ -376,6 +389,9 @@ function createRoom(rules, options = {}) {
     const result = rules.resolveNight(room);
     if (result?.winner) {
       room.meta.winner = result.winner;
+      if (typeof rules.explainWin === "function") {
+        room.meta.winReason = rules.explainWin(room, result.winner);
+      }
       systemSetPhase("ended");
     }
     emitUpdate();

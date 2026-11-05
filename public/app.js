@@ -9,6 +9,7 @@
   const gameError = document.getElementById("game-error");
   const phaseLabel = document.getElementById("phase-label");
   const cityPoints = document.getElementById("city-points");
+  const winGoal = document.getElementById("win-goal");
   const sideLabel = document.getElementById("side-label");
   const youLabel = document.getElementById("you-label");
   const shadowBanner = document.getElementById("shadow-banner");
@@ -371,9 +372,30 @@
       if (view.meta && started) {
         cityPoints.hidden = false;
         const slow = view.meta.slowdown ? ` · ${String(view.meta.slowdown).toUpperCase()}` : "";
-        cityPoints.textContent = `CITY PTS: ${view.meta.cityPoints ?? 0}${slow}`;
+        const goal =
+          view.meta.winMode === "survival" && view.meta.cityPointGoal
+            ? `/${view.meta.cityPointGoal}`
+            : "";
+        cityPoints.textContent = `CITY PTS: ${view.meta.cityPoints ?? 0}${goal}${slow}`;
       } else {
         cityPoints.hidden = true;
+      }
+    }
+    if (winGoal) {
+      if (view.meta && started && view.phase !== "ended") {
+        winGoal.hidden = false;
+        if (view.meta.winMode === "parity") {
+          winGoal.textContent = "WIN: keep majority · wipe shadows";
+        } else {
+          const n = view.meta.nightsSurvived ?? 0;
+          const need = view.meta.surviveNights ?? 3;
+          winGoal.textContent = `WIN: nights ${n}/${need} · pts goal · or wipe shadows`;
+        }
+      } else if (view.meta?.winner) {
+        winGoal.hidden = false;
+        winGoal.textContent = `${String(view.meta.winner).toUpperCase()} WIN`;
+      } else {
+        winGoal.hidden = true;
       }
     }
 

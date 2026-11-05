@@ -32,10 +32,16 @@ Humans and bots share one town under a lore theme. Kind is hidden. Talk → LLM-
 
 ## Win conditions
 
-- **Humans win:** no bots left alive.
-- **Bots win as a team:** living humans ≤ living bots (or zero humans). Dead bots share that win. Survival of any one bot is not the goal.
+Mode is chosen at start from seat counts:
 
-Check after vote resolve and after night resolve. Crisis does not change who is alive.
+- **Parity** (humans start with a strict majority): classic call.
+  - **Humans win:** no bots left alive.
+  - **Bots win as a team:** living humans ≤ living bots (or zero humans). Dead bots share that win.
+- **Survival** (underdog / 1-human demo tables): parity alone does **not** end the game.
+  - **Humans win:** wipe every bot, **or** survive N nights (default 3) while any human lives, **or** reach the city-point goal (default 4).
+  - **Bots win as a team:** wipe every living human. Dead bots share that win.
+
+Check after vote resolve, night resolve, and crisis reveal (points path). Crisis never kills by itself.
 
 ## Setup (once per game)
 
