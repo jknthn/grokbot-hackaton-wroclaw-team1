@@ -28,6 +28,9 @@ app.use(
   "/vendor/three",
   express.static(path.join(__dirname, "..", "node_modules", "three"))
 );
+app.get("/demo", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "demo.html"));
+});
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 const room = createRoom(rules, { joinPin: JOIN_PIN });

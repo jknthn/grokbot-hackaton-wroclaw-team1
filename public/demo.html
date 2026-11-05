@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>mw-ui walkthrough demo — Grokmafia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/demo.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body class="demo-page">
+    <div id="demo-bar" class="demo-bar" role="region" aria-label="Demo walkthrough controls">
+      <span class="demo-pill">MOCK DEMO</span>
+      <strong>NEXT STEP</strong>
+      <span data-demo-step>Join — use Enter demo or COME IN</span>
+      <span data-demo-count class="demo-muted">—</span>
+      <button type="button" data-demo-join>Enter demo</button>
+      <button type="button" data-demo-next>NEXT STEP →</button>
+      <button type="button" data-demo-reset class="secondary">Reset</button>
+      <label class="check"><input type="checkbox" data-demo-observer /> Observer roles (demo only)</label>
+    </div>
+
+    <aside id="demo-observer" aria-label="Observer panel (demo only)">
+      <h3>OBSERVER · NOT IN GAMEPLAY</h3>
+      <div id="demo-observer-body"></div>
+    </aside>
+
+    <canvas id="scene" aria-label="Dining hall"></canvas>
+
+    <div id="webgl-fallback" class="webgl-fallback" hidden>
+      <p id="webgl-fallback-msg">3D view unavailable — this browser has no WebGL.</p>
+      <div id="seat-fallback"></div>
+    </div>
+
+    <div id="join-screen" class="panel join">
+      <p class="eyebrow">WALKTHROUGH · MW-UI DINING HALL</p>
+      <h1>THE CLUB</h1>
+      <p class="sub">Mock demo only. Fictional names and lines. No socket room, no API keys, no live players.</p>
+      <label>Name <input id="name" maxlength="24" value="Kitty" autocomplete="nickname" /></label>
+      <label>Door code <input id="pin" maxlength="8" value="4821" autocomplete="off" /></label>
+      <label class="check"><input type="checkbox" id="want-host" checked /> I’m running this sit-down (host)</label>
+      <button id="join-btn" type="button">COME IN (YOU + SHADOW)</button>
+      <p class="sub"><a href="/">Live game</a> uses real Socket.io (this page does not).</p>
+      <p id="join-error" class="error" hidden></p>
+    </div>
+
+    <div id="game" class="game" hidden>
+      <header class="bar">
+        <div>
+          <strong id="phase-label" class="phase-hud">LOBBY</strong>
+          <span id="city-points" class="city-points" hidden>CITY PTS: 0</span>
+          <span id="you-label" class="muted"></span>
+        </div>
+        <div id="host-controls" class="host" hidden>
+          <div id="phase-buttons" class="host-row"></div>
+          <div id="theme-buttons" class="host-row" hidden></div>
+          <div class="host-row">
+            <button type="button" id="start-game-btn">START</button>
+            <button type="button" id="open-window-btn">OPEN WINDOW</button>
+            <button type="button" id="close-window-btn">REVEAL</button>
+            <button type="button" id="add-bot-btn">ADD BOT</button>
+            <button type="button" id="reset-game-btn">RESET GAME</button>
+            <button type="button" id="reset-room-btn">CLEAR TABLE</button>
+          </div>
+          <p id="lobby-status" class="host-hint" hidden></p>
+          <p id="host-hint" class="host-hint">Click a seat to kill / revive</p>
+        </div>
+      </header>
+
+      <div class="stage-ui">
+        <p class="hint">Use <strong>NEXT STEP</strong> above for the happy path. Click guests in 3D during vote.</p>
+        <section id="chat-wrap" class="chat-wrap">
+          <div id="window-banner" class="window-banner" hidden>
+            <span id="window-status">Blind write open</span>
+            <span id="window-count" class="muted"></span>
+          </div>
+          <div id="chat" class="chat"></div>
+          <form id="say-form" class="say">
+            <input id="say-input" maxlength="280" placeholder="Be careful what you put on the record…" autocomplete="off" />
+            <button type="submit">SAY</button>
+          </form>
+          <form id="submit-form" class="say submit-form" hidden>
+            <input id="submit-input" maxlength="160" placeholder="Blind line — others can’t see this yet…" autocomplete="off" />
+            <button type="submit">SUBMIT</button>
+          </form>
+          <p id="your-draft" class="your-draft" hidden></p>
+          <button id="ready-btn" type="button" class="secondary">READY</button>
+        </section>
+      </div>
+      <p id="game-error" class="error" hidden></p>
+    </div>
+
+    <script src="/demo-walkthrough.js"></script>
+    <script>
+      try {
+        localStorage.removeItem("grokmafia.session");
+      } catch (_) {}
+      installDemoWalkthrough();
+    </script>
+    <script src="/app.js"></script>
+  </body>
+</html>
