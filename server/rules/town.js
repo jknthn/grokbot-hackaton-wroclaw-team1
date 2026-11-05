@@ -31,7 +31,16 @@ function ensureVotes(room) {
   return room.meta.votes;
 }
 
-function pushTown(room, text) {
+function setGuide(room, action, detail) {
+  if (!room.meta) room.meta = {};
+  room.meta.guide = {
+    action: String(action || "").slice(0, 48),
+    detail: String(detail || "").slice(0, 200),
+    at: Date.now(),
+  };
+}
+
+function pushTown(room, text, guide) {
   if (!room.channels.public) room.channels.public = [];
   const body = String(text ?? "").trim().slice(0, 280);
   if (!body) return;
@@ -41,6 +50,9 @@ function pushTown(room, text) {
     text: body,
     ts: Date.now(),
   });
+  if (guide?.action) {
+    setGuide(room, guide.action, guide.detail || body);
+  }
 }
 
 function checkWin(room) {
@@ -76,7 +88,14 @@ function resolveVotes(room) {
 
   const need = Math.floor(livingCount / 2) + 1;
   if (bestSeat == null || bestCount < need) {
-    pushTown(room, "No majority. Nobody is removed.");
+    pushTown(
+      room,
+      `Vote fails — need ${need} of ${livingCount}. Nobody leaves. Night is next.`,
+      {
+        action: "NO MAJORITY",
+        detail: "The table could not agree. Night comes next.",
+      }
+    );
     room.meta.votes = new Map();
     return { removed: null, winner: null };
   }
@@ -86,7 +105,11 @@ function resolveVotes(room) {
     target.alive = false;
     pushTown(
       room,
-      `${target.name} is voted out. Their kind stays hidden.`
+      `${target.name} is voted out (${bestCount}/${livingCount}). Kind stays hidden. Checking the town…`,
+      {
+        action: "VOTED OUT",
+        detail: `${target.name} leaves the table. Roles stay hidden.`,
+      }
     );
   }
   room.meta.votes = new Map();
@@ -122,6 +145,11 @@ const town = {
     if (!room.channels.public) room.channels.public = [];
     if (!room.meta) room.meta = {};
     if (!room.meta.selectedTheme) room.meta.selectedTheme = lore.DEFAULT_THEME;
+    setGuide(
+      room,
+      "LOBBY",
+      "Host: ADD BOT to pack the table. Humans: press READY when packed."
+    );
   },
 
   onJoin(_room, _player) {},
@@ -209,6 +237,8 @@ const town = {
     const living = livingPlayers(room);
     const votes = room.meta?.votes instanceof Map ? room.meta.votes : null;
     const yourVote = votes && player ? votes.get(player.seatId) : undefined;
+    const publicMsgs = room.channels?.public || [];
+    const lastTown = [...publicMsgs].reverse().find((m) => m.name === "Town");
     return {
       cityPoints: Number(room.meta?.cityPoints) || 0,
       slowdown: room.meta?.slowdown ?? null,
@@ -219,10 +249,13 @@ const town = {
       votesNeeded: living.length,
       youVoted: yourVote !== undefined,
       yourVoteTarget: yourVote !== undefined ? yourVote : null,
+      guide: room.meta?.guide || null,
+      lastTown: lastTown ? lastTown.text : null,
+      livingCount: living.length,
     };
   },
 
-  onPhaseChange(room, _prev, next) {
+  onPhaseChange(room, prev, next) {
     if (!room.meta) room.meta = {};
     if (next === "crisis") {
       if (room.meta._gmCrisisPrompt) {
@@ -233,7 +266,14 @@ const town = {
         room.meta.crisisPrompt = CRISIS_PROMPTS[idx % CRISIS_PROMPTS.length];
         room.meta.crisisIndex = idx + 1;
       }
-      pushTown(room, `CRISIS: ${room.meta.crisisPrompt}`);
+      pushTown(
+        room,
+        `CRISIS hits the town. Answer in the sealed window — one line each. Question: ${room.meta.crisisPrompt}`,
+        {
+          action: "CRISIS — SUBMIT",
+          detail: room.meta.crisisPrompt,
+        }
+      );
       return;
     }
     if (next === "talk") {
@@ -245,38 +285,91 @@ const town = {
         room.meta.talkPrompt = TALK_PROMPTS[idx % TALK_PROMPTS.length];
         room.meta.talkIndex = idx + 1;
       }
-      if (room.meta.talkPrompt) {
-        pushTown(room, `DAY: ${room.meta.talkPrompt}`);
-      }
+      const dayN = Number(room.meta.talkIndex) || 1;
+      pushTown(
+        room,
+        `DAY ${dayN}. Blind talk — write one sealed line, then we reveal together. Prompt: ${room.meta.talkPrompt}`,
+        {
+          action: "DAY TALK — SUBMIT",
+          detail: room.meta.talkPrompt,
+        }
+      );
       room.meta.votes = new Map();
       return;
     }
     if (next === "vote") {
       room.meta.votes = new Map();
+      const living = livingPlayers(room).length;
+      const need = Math.floor(living / 2) + 1;
       pushTown(
         room,
-        "VOTE: Click a living seat. Majority of the living decides. Kind stays hidden."
+        `VOTE. Click one living seat. Need ${need} of ${living} for a kick. Kind stays hidden — judge the words, not a label.`,
+        {
+          action: "VOTE — CLICK A SEAT",
+          detail: `Majority is ${need}/${living}. Roles stay hidden.`,
+        }
       );
       return;
     }
     if (next === "night") {
       room.meta.votes = new Map();
-      pushTown(room, "Night falls. Shadows stir — for now, the night passes quietly.");
+      pushTown(
+        room,
+        "NIGHT. Humans wait. Shadows would scheme here — tonight passes quietly. Dawn returns soon.",
+        {
+          action: "NIGHT — WAIT",
+          detail: "Quiet night stub. Next up: another day talk.",
+        }
+      );
+      return;
+    }
+    if (next === "lobby") {
+      setGuide(
+        room,
+        "LOBBY",
+        "Host: ADD BOT to pack the table. Humans: press READY when packed."
+      );
       return;
     }
     if (next === "ended") {
       const w = room.meta.winner;
       if (w === "humans") {
-        pushTown(room, "The town holds. Humans win — no bots remain.");
+        pushTown(
+          room,
+          "ENDED — humans win. No bots remain at the table.",
+          { action: "HUMANS WIN", detail: "Reset game or clear table for another sit-down." }
+        );
       } else if (w === "bots") {
-        pushTown(room, "The shadows win as a team. Dead bots share the victory.");
+        pushTown(
+          room,
+          "ENDED — bots win as a team (dead bots share it). Living humans could not outnumber them.",
+          { action: "BOTS WIN", detail: "Reset game or clear table for another sit-down." }
+        );
+      } else {
+        pushTown(room, "ENDED.", { action: "ENDED", detail: "Round over." });
       }
+      return;
+    }
+    if (prev && next) {
+      setGuide(room, String(next).toUpperCase(), `Phase moved to ${next}.`);
     }
   },
 
   async onCloseWindow(room, revealed) {
-    if (room.phase !== "crisis") return;
     if (!room.meta) room.meta = {};
+    const n = (revealed || []).length;
+    if (room.phase === "talk") {
+      pushTown(
+        room,
+        `Reveal: ${n} sealed day line(s) hit the record. Crisis is next.`,
+        {
+          action: "DAY REVEALED",
+          detail: "Read the chat, then answer the crisis.",
+        }
+      );
+      return;
+    }
+    if (room.phase !== "crisis") return;
     const living = livingPlayers(room);
     const answers = (revealed || []).map((r) => ({
       name: r.name,
@@ -296,7 +389,14 @@ const town = {
         : result.slowdown === "against"
           ? " Tempo leans against the city."
           : "";
-    pushTown(room, `${result.summary} City points: ${pts}.${slow}`);
+    pushTown(
+      room,
+      `Crisis judged (${n} answers). ${result.summary} City points: ${pts}.${slow} Vote is next.`,
+      {
+        action: "CRISIS RESOLVED",
+        detail: `City points ${pts}. Get ready to vote.`,
+      }
+    );
   },
 
   canSay(_player, _channel, _room) {
@@ -393,8 +493,9 @@ const town = {
         .join(", ");
       return (
         base +
-        ` Vote phase: pick ONE living seat to eliminate. Candidates: ${seats || "none"}. ` +
-        "Reply with only the seat number."
+        " Vote phase: eliminate ONE living seat based on what they said in public — suspicion from words, not from guessing who is human. " +
+        "Do not always pick the same seat. Spread suspicion. " +
+        `Candidates: ${seats || "none"}. Reply with only the seat number.`
       );
     }
     const crisisPrompt = view?.meta?.crisisPrompt;

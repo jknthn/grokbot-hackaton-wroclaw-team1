@@ -34,6 +34,8 @@
   const voteBanner = document.getElementById("vote-banner");
   const voteStatus = document.getElementById("vote-status");
   const voteCount = document.getElementById("vote-count");
+  const nowAction = document.getElementById("now-action");
+  const nowDetail = document.getElementById("now-detail");
   const readyBtn = document.getElementById("ready-btn");
 
   let view = null;
@@ -300,6 +302,17 @@
 
     renderHostStrip();
 
+    if (nowAction && nowDetail) {
+      const guide = view.meta?.guide;
+      if (guide?.action) {
+        nowAction.textContent = guide.action;
+        nowDetail.textContent = guide.detail || view.meta?.lastTown || "";
+      } else {
+        nowAction.textContent = phaseHud(view.phase);
+        nowDetail.textContent = view.meta?.lastTown || "Watch Town lines in chat.";
+      }
+    }
+
     const windowOpen = Boolean(view.window?.open);
     const isCrisis = view.phase === "crisis";
     const isVote = view.phase === "vote";
@@ -383,10 +396,11 @@
 
     const msgs = view.channels.public || [];
     chat.innerHTML = msgs
-      .map(
-        (m) =>
-          `<div class="msg"><span class="who">${escapeHtml(m.name)}</span>${escapeHtml(m.text)}</div>`
-      )
+      .map((m) => {
+        const isTown = m.name === "Town" || m.fromSeat === -1;
+        const cls = isTown ? "msg msg-town" : "msg";
+        return `<div class="${cls}"><span class="who">${escapeHtml(m.name)}</span>${escapeHtml(m.text)}</div>`;
+      })
       .join("");
     chat.scrollTop = chat.scrollHeight;
 

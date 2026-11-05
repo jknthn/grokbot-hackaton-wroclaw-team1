@@ -246,7 +246,9 @@ function createRoom(rules, options = {}) {
       rules.onPhaseChange(room, prev, nextPhase);
     }
     const themeLabel = room.meta?.themeLabel || "the town";
-    announce(`The town opens under ${themeLabel}. Lore names are dealt. Kind stays hidden.`);
+    announce(
+      `The town opens under ${themeLabel}. Lore names are dealt; kind stays hidden. Flow: day talk → crisis → vote → night.`
+    );
     emitUpdate();
   }
 

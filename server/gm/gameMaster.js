@@ -90,6 +90,15 @@ function startGameMaster(room, opts = {}) {
         delete room.meta._wantGmCrisis;
       }
     }
+    if (phase === "talk") {
+      room.announce(
+        "Write window OPEN — one sealed day line. Submit, then wait for the reveal."
+      );
+    } else if (phase === "crisis") {
+      room.announce(
+        "Crisis window OPEN — one sealed answer. Submit, then the town judges."
+      );
+    }
     room.systemOpenWindow({ maxLen: 160 });
     windowOpenedForPhase = phase;
     phaseStartedAt = Date.now();
@@ -98,6 +107,11 @@ function startGameMaster(room, opts = {}) {
   async function closeAndAdvance(nextPhase) {
     if (room.window) {
       await room.systemCloseWindow({ reveal: true });
+    }
+    if (nextPhase === "crisis") {
+      room.announce("Moving to CRISIS.");
+    } else if (nextPhase === "vote") {
+      room.announce("Moving to VOTE — click a seat.");
     }
     room.systemSetPhase(nextPhase);
   }
@@ -136,8 +150,14 @@ function startGameMaster(room, opts = {}) {
       if (room.phase === "vote") {
         const cast = votesCast(room);
         if ((living > 0 && cast >= living) || elapsed >= voteMs) {
+          room.announce(
+            cast >= living
+              ? "All votes are in — resolving."
+              : "Vote window closed — resolving."
+          );
           const result = room.resolveVote();
           if (!result?.winner) {
+            room.announce("No winner yet — night falls.");
             room.systemSetPhase("night");
           }
         }
@@ -146,6 +166,7 @@ function startGameMaster(room, opts = {}) {
 
       if (room.phase === "night") {
         if (elapsed >= nightMs) {
+          room.announce("Dawn. Another day begins.");
           room.systemSetPhase("talk");
         }
       }

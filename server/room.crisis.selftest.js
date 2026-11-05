@@ -21,7 +21,7 @@ const { createRoom } = require("./room");
   room.setPhase(human.id, "crisis");
   assert.strictEqual(room.phase, "crisis");
   assert.ok(room.meta.crisisPrompt);
-  assert.ok(room.channels.public.some((m) => /^CRISIS:/i.test(m.text)));
+  assert.ok(room.channels.public.some((m) => /CRISIS/i.test(m.text)));
 
   const viewCrisis = room.viewFor(human.id);
   assert.strictEqual(viewCrisis.meta.crisisPrompt, room.meta.crisisPrompt);

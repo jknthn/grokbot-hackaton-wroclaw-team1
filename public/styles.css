@@ -231,6 +231,31 @@ button:disabled {
   color: var(--muted);
 }
 
+.now-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(90deg, #2a2014 0%, #1a1410 100%);
+  border: 4px solid var(--accent);
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+
+.now-banner strong {
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.now-banner span {
+  font-family: var(--font-body);
+  font-size: 1.25rem;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
 .window-banner {
   display: flex;
   justify-content: space-between;
@@ -240,6 +265,16 @@ button:disabled {
   font-size: 0.42rem;
   letter-spacing: 0.06em;
   color: #d4a0a8;
+}
+
+.msg-town {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.45rem;
+  background: rgba(201, 162, 39, 0.08);
+}
+
+.msg-town .who {
+  color: var(--accent);
 }
 
 .your-draft {

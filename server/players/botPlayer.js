@@ -108,9 +108,13 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
     );
     if (!candidates.length) return null;
 
+    function randomCandidate() {
+      return candidates[Math.floor(Math.random() * candidates.length)].seatId;
+    }
+
     const key = process.env.GROK_API_KEY;
     if (!key) {
-      return candidates[lineIndex++ % candidates.length].seatId;
+      return randomCandidate();
     }
     try {
       const prompt = view.botPrompt || `Vote for a seat.`;
@@ -133,11 +137,12 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
                   ? `Full town transcript so far:\n${history}\n\n`
                   : "No public transcript yet.\n\n") +
                 `Living seats: ${seats || "(none)"}\n` +
+                "Pick from suspicion in the transcript. Do not pile onto one seat every time. " +
                 "Reply with ONLY the seat number integer to vote out.",
             },
           ],
           max_tokens: 20,
-          temperature: 0.4,
+          temperature: 0.7,
         }),
       });
       if (!res.ok) throw new Error(`grok http ${res.status}`);
@@ -146,10 +151,10 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
       const match = content.match(/-?\d+/);
       const seatId = match ? Number(match[0]) : NaN;
       if (candidates.some((c) => c.seatId === seatId)) return seatId;
-      return candidates[0].seatId;
+      return randomCandidate();
     } catch (err) {
       console.warn("[bot] vote fallback:", err.message);
-      return candidates[lineIndex++ % candidates.length].seatId;
+      return randomCandidate();
     }
   }
 
