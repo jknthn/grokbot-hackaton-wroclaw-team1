@@ -13,6 +13,7 @@ function createRoom(rules, options = {}) {
     phase: rules.initialPhase(),
     players: new Map(),
     channels: { public: [] },
+    window: null,
     nextSeat: 0,
     _bus: new EventEmitter(),
   };
@@ -39,6 +40,16 @@ function createRoom(rules, options = {}) {
     return player;
   }
 
+  function requireHost(playerId) {
+    const player = requirePlayer(playerId);
+    if (!player.host) {
+      const err = new Error("host only");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    return player;
+  }
+
   function pinAllowed(pin) {
     const given = String(pin ?? "").trim();
     const accepted = new Set(
@@ -47,6 +58,14 @@ function createRoom(rules, options = {}) {
         .map((v) => String(v).trim())
     );
     return accepted.has(given);
+  }
+
+  function canAdmin(player, type) {
+    if (!player.host) return false;
+    if (typeof rules.canAdmin === "function") {
+      return rules.canAdmin(player, type, room);
+    }
+    return true;
   }
 
   function join({ name, kind = "human", host = false, pin }) {
@@ -96,6 +115,16 @@ function createRoom(rules, options = {}) {
 
   function handleSay(playerId, channel, text) {
     const player = requirePlayer(playerId);
+    if (!player.alive) {
+      const err = new Error("dead cannot say");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    if (room.window) {
+      const err = new Error("window open — use submit");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
     const body = String(text ?? "").trim().slice(0, 280);
     if (!body) {
       const err = new Error("empty message");
@@ -123,6 +152,11 @@ function createRoom(rules, options = {}) {
 
   function handleAct(playerId, type, payload) {
     const player = requirePlayer(playerId);
+    if (!player.alive) {
+      const err = new Error("dead cannot act");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
     if (!rules.canAct(player, type, room)) {
       const err = new Error("cannot act now");
       err.code = "FORBIDDEN";
@@ -142,12 +176,7 @@ function createRoom(rules, options = {}) {
   }
 
   function setPhase(playerId, phase) {
-    const player = requirePlayer(playerId);
-    if (!player.host) {
-      const err = new Error("host only");
-      err.code = "FORBIDDEN";
-      throw err;
-    }
+    requireHost(playerId);
     const allowed = rules.phases();
     if (!allowed.includes(phase)) {
       const err = new Error("unknown phase");
@@ -156,6 +185,125 @@ function createRoom(rules, options = {}) {
     }
     room.phase = phase;
     emitUpdate();
+  }
+
+  function openWindow(hostId, opts = {}) {
+    const host = requireHost(hostId);
+    if (!canAdmin(host, "openWindow")) {
+      const err = new Error("cannot open window now");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    if (room.window) {
+      const err = new Error("window already open");
+      err.code = "WINDOW_OPEN";
+      throw err;
+    }
+    const maxLen = Math.min(Math.max(Number(opts.maxLen) || 160, 1), 280);
+    room.window = {
+      id: randomUUID(),
+      maxLen,
+      openedAt: Date.now(),
+      drafts: new Map(),
+    };
+    emitUpdate();
+    return room.window;
+  }
+
+  function closeWindow(hostId, opts = {}) {
+    const host = requireHost(hostId);
+    if (!canAdmin(host, "closeWindow")) {
+      const err = new Error("cannot close window now");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    if (!room.window) {
+      const err = new Error("no window open");
+      err.code = "NO_WINDOW";
+      throw err;
+    }
+    const reveal = opts.reveal !== false;
+    if (reveal) {
+      const drafts = [...room.window.drafts.entries()].sort((a, b) => a[0] - b[0]);
+      const ts = Date.now();
+      for (const [seatId, draft] of drafts) {
+        room.channels.public.push({
+          fromSeat: seatId,
+          name: draft.name,
+          text: draft.text,
+          ts,
+        });
+      }
+    }
+    room.window = null;
+    emitUpdate();
+  }
+
+  function submit(playerId, text) {
+    const player = requirePlayer(playerId);
+    if (!player.alive) {
+      const err = new Error("dead cannot submit");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    if (!room.window) {
+      const err = new Error("no window open");
+      err.code = "NO_WINDOW";
+      throw err;
+    }
+    if (typeof rules.canAct === "function" && !rules.canAct(player, "submit", room)) {
+      const err = new Error("cannot submit now");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    if (room.window.drafts.has(player.seatId)) {
+      const err = new Error("already submitted");
+      err.code = "ALREADY_SUBMITTED";
+      throw err;
+    }
+    const body = String(text ?? "").trim().slice(0, room.window.maxLen);
+    if (!body) {
+      const err = new Error("empty message");
+      err.code = "BAD_TEXT";
+      throw err;
+    }
+    room.window.drafts.set(player.seatId, {
+      text: body,
+      name: player.name,
+      ts: Date.now(),
+    });
+    emitUpdate();
+  }
+
+  function addBot(hostId, opts = {}) {
+    const host = requireHost(hostId);
+    if (!canAdmin(host, "addBot")) {
+      const err = new Error("cannot add bot now");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    const botCount = listPlayers().filter((p) => p.kind === "bot").length;
+    const fallback = `Grok-${botCount + 1}`;
+    const name = String(opts.name || fallback).trim().slice(0, 24) || fallback;
+    return joinBot({ name });
+  }
+
+  function setAlive(hostId, seatId, alive) {
+    const host = requireHost(hostId);
+    if (!canAdmin(host, "setAlive")) {
+      const err = new Error("cannot set alive now");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    const target = listPlayers().find((p) => p.seatId === Number(seatId));
+    if (!target) {
+      const err = new Error("unknown seat");
+      err.code = "UNKNOWN_SEAT";
+      throw err;
+    }
+    target.alive = Boolean(alive);
+    emitUpdate();
+    return target;
   }
 
   function viewFor(playerId) {
@@ -173,6 +321,11 @@ function createRoom(rules, options = {}) {
     handleSay,
     handleAct,
     setPhase,
+    openWindow,
+    closeWindow,
+    submit,
+    addBot,
+    setAlive,
     viewFor,
     onUpdate,
     get phase() {
@@ -180,6 +333,9 @@ function createRoom(rules, options = {}) {
     },
     get joinPin() {
       return joinPin;
+    },
+    get window() {
+      return room.window;
     },
     players: room.players,
     channels: room.channels,

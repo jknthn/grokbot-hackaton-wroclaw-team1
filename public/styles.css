@@ -147,7 +147,8 @@ input:not([type]),
 input[type="password"],
 #pin,
 #name,
-#say-input {
+#say-input,
+#submit-input {
   padding: 0.55rem 0.65rem;
   border: 3px solid var(--line);
   border-radius: 0;

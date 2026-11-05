@@ -31,23 +31,36 @@
           <span id="you-label" class="muted"></span>
         </div>
         <div id="host-controls" class="host" hidden>
-          <button type="button" data-phase="lobby">LOBBY</button>
-          <button type="button" data-phase="talk">TALK</button>
-          <button type="button" data-phase="done">DONE</button>
+          <div id="phase-buttons" class="host-row"></div>
+          <div class="host-row">
+            <button type="button" id="open-window-btn">OPEN WINDOW</button>
+            <button type="button" id="close-window-btn">REVEAL</button>
+            <button type="button" id="add-bot-btn">ADD BOT</button>
+          </div>
+          <p id="host-hint" class="host-hint">Click a seat to kill / revive</p>
         </div>
       </header>
 
       <main class="layout">
         <section class="table-wrap">
           <div id="table" class="table" aria-label="Seats"></div>
-          <p class="hint">Nobody talking? Host opens <em>TALK</em>.</p>
+          <p class="hint">Nobody talking? Host opens <em>TALK</em>, then <em>OPEN WINDOW</em> for a blind round.</p>
         </section>
         <section id="chat-wrap" class="chat-wrap">
+          <div id="window-banner" class="window-banner" hidden>
+            <span id="window-status">Blind write open</span>
+            <span id="window-count" class="muted"></span>
+          </div>
           <div id="chat" class="chat"></div>
           <form id="say-form" class="say">
             <input id="say-input" maxlength="280" placeholder="Be careful what you put on the record…" autocomplete="off" />
             <button type="submit">SAY</button>
           </form>
+          <form id="submit-form" class="say submit-form" hidden>
+            <input id="submit-input" maxlength="160" placeholder="Blind line — others can’t see this yet…" autocomplete="off" />
+            <button type="submit">SUBMIT</button>
+          </form>
+          <p id="your-draft" class="your-draft" hidden></p>
           <button id="ready-btn" type="button" class="secondary">READY</button>
         </section>
       </main>

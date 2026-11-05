@@ -1,5 +1,8 @@
 /** Build per-player view using active rules. */
 
+const DEFAULT_ACT_TYPES = ["ready", "submit"];
+const ADMIN_TYPES = ["openWindow", "closeWindow", "addBot", "setAlive"];
+
 function getView(room, playerId) {
   const player = room.players.get(playerId);
   if (!player) return null;
@@ -20,12 +23,37 @@ function getView(room, playerId) {
     if (rules.canSay(player, name, room)) say.push(name);
   }
 
+  const actTypes =
+    typeof rules.actTypes === "function" ? rules.actTypes() : DEFAULT_ACT_TYPES;
   const act = [];
-  for (const type of ["ready"]) {
+  for (const type of actTypes) {
     if (rules.canAct(player, type, room)) act.push(type);
   }
 
-  return {
+  const admin = [];
+  if (player.host) {
+    for (const type of ADMIN_TYPES) {
+      const ok =
+        typeof rules.canAdmin === "function"
+          ? rules.canAdmin(player, type, room)
+          : true;
+      if (ok) admin.push(type);
+    }
+  }
+
+  let windowView = null;
+  if (room.window) {
+    const draft = room.window.drafts.get(player.seatId);
+    windowView = {
+      open: true,
+      maxLen: room.window.maxLen,
+      submitted: room.window.drafts.size,
+      youSubmitted: Boolean(draft),
+      yourDraft: draft ? draft.text : null,
+    };
+  }
+
+  const view = {
     phase: room.phase,
     phases: rules.phases(),
     you: {
@@ -38,13 +66,20 @@ function getView(room, playerId) {
     },
     seats,
     channels,
+    window: windowView,
     allowed: {
       say,
       act,
       setPhase: Boolean(player.host),
+      admin,
     },
-    botPrompt: player.kind === "bot" ? rules.botPrompt(player, null) : undefined,
   };
+
+  if (player.kind === "bot") {
+    view.botPrompt = rules.botPrompt(player, view);
+  }
+
+  return view;
 }
 
 module.exports = { getView };

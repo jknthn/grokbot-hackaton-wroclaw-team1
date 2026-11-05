@@ -1,27 +1,40 @@
 const { cannedLines } = require("./prompts/sandbox");
 
 /**
- * In-process BotPlayer — same say/act path as humans.
+ * In-process BotPlayer — same say/act/submit path as humans.
  * Uses Grok when GROK_API_KEY is set; otherwise canned lines.
+ * Pass existingPlayer when the seat was already created (e.g. host addBot).
  */
-function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000 } = {}) {
-  const bot = room.joinBot({ name });
+function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlayer } = {}) {
+  const bot = existingPlayer || room.joinBot({ name });
   let lineIndex = 0;
   let busy = false;
 
   async function maybeSpeak() {
     if (busy) return;
     const view = room.viewFor(bot.id);
-    if (!view || view.phase !== "talk") return;
+    if (!view || !view.you.alive) return;
+
+    if (view.window?.open) {
+      if (view.window.youSubmitted) return;
+      busy = true;
+      try {
+        const text = await pickLine(view);
+        if (text) room.submit(bot.id, text);
+      } catch (err) {
+        console.warn("[bot]", bot.name, err.message);
+      } finally {
+        busy = false;
+      }
+      return;
+    }
+
+    if (view.phase !== "talk") return;
     if (!view.allowed.say.includes("public")) return;
 
     const msgs = view.channels.public || [];
     const last = msgs[msgs.length - 1];
     if (last && last.fromSeat === bot.seatId) return;
-    // In lobby→talk, speak once even if chat empty; otherwise wait for human traffic or speak if empty after tick
-    if (msgs.length === 0) {
-      // still allow intro line
-    }
 
     busy = true;
     try {
@@ -36,10 +49,11 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000 } = {}) {
 
   async function pickLine(view) {
     const key = process.env.GROK_API_KEY;
+    const maxLen = view.window?.maxLen || 200;
     if (!key) {
       const line = cannedLines[lineIndex % cannedLines.length];
       lineIndex += 1;
-      return line;
+      return line.slice(0, maxLen);
     }
     try {
       const prompt = view.botPrompt || `You are ${bot.name}. Say something short.`;
@@ -47,6 +61,7 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000 } = {}) {
         .slice(-12)
         .map((m) => `${m.name}: ${m.text}`)
         .join("\n");
+      const blind = Boolean(view.window?.open);
       const res = await fetch("https://api.x.ai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -59,9 +74,13 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000 } = {}) {
             { role: "system", content: prompt },
             {
               role: "user",
-              content: history
-                ? `Recent chat:\n${history}\n\nWrite your next message only.`
-                : "The chat is empty. Say a short hello to the table.",
+              content: blind
+                ? history
+                  ? `Earlier transcript (others are writing blind now):\n${history}\n\nWrite your one blind line only.`
+                  : "Write one short blind line for the table. Nobody else can see it yet."
+                : history
+                  ? `Recent chat:\n${history}\n\nWrite your next message only.`
+                  : "The chat is empty. Say a short hello to the table.",
             },
           ],
           max_tokens: 60,
@@ -72,16 +91,15 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000 } = {}) {
       const data = await res.json();
       const content = data.choices?.[0]?.message?.content?.trim();
       if (!content) throw new Error("empty grok");
-      return content.replace(/^["']|["']$/g, "").slice(0, 200);
+      return content.replace(/^["']|["']$/g, "").slice(0, maxLen);
     } catch (err) {
       console.warn("[bot] grok fallback:", err.message);
       const line = cannedLines[lineIndex % cannedLines.length];
       lineIndex += 1;
-      return line;
+      return line.slice(0, maxLen);
     }
   }
 
-  // First attempt shortly after talk starts; then interval
   const timer = setInterval(maybeSpeak, intervalMs);
   const kick = setTimeout(maybeSpeak, 1500);
 
