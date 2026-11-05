@@ -27,7 +27,10 @@
   const resetGameBtn = document.getElementById("reset-game-btn");
   const resetRoomBtn = document.getElementById("reset-room-btn");
   const lobbyStatus = document.getElementById("lobby-status");
-  const table = document.getElementById("table");
+  const canvas = document.getElementById("scene");
+  const fallbackEl = document.getElementById("webgl-fallback");
+  const fallbackMsg = document.getElementById("webgl-fallback-msg");
+  const seatFallback = document.getElementById("seat-fallback");
   const chatWrap = document.getElementById("chat-wrap");
   const chat = document.getElementById("chat");
   const sayForm = document.getElementById("say-form");
@@ -57,6 +60,18 @@
   /** @type {Map<number, string>} */
   let evidenceChips = new Map();
   let lastPublicLen = 0;
+  let sceneState = "loading";
+  let sceneApi = {
+    available: false,
+    sync() {},
+    debug() {
+      return { available: false, seatCount: 0, seats: [] };
+    },
+    projectSeat() {
+      return null;
+    },
+    destroy() {},
+  };
 
   function evidenceFromText(text, seats) {
     const t = String(text || "");
@@ -139,6 +154,85 @@
     joinScreen.hidden = false;
     showError(joinError, message || "");
     showError(gameError, "");
+    syncScene();
+  }
+
+  function onSeatClick(seatId) {
+    if (!view) return;
+    const seat = view.seats.find((s) => s.seatId === seatId);
+    if (!seat) return;
+    const admin = view.allowed.admin || [];
+    const acts = view.allowed.act || [];
+    if (acts.includes("vote") && seat.alive) {
+      selectedSeatId = seat.seatId;
+      socket.emit("act", { type: "vote", payload: { seatId: seat.seatId } });
+      syncScene();
+      return;
+    }
+    if (admin.includes("setAlive") && view.phase !== "vote") {
+      selectedSeatId = seat.seatId;
+      socket.emit("setAlive", { seatId: seat.seatId, alive: !seat.alive });
+      syncScene();
+    }
+  }
+
+  function showWebglFallback(message) {
+    sceneState = "failed";
+    if (fallbackEl) fallbackEl.hidden = false;
+    if (message && fallbackMsg) fallbackMsg.textContent = message;
+    renderSeatFallback();
+  }
+
+  function speakerSeatId() {
+    const msgs = view?.channels?.public || [];
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const from = msgs[i].fromSeat;
+      if (typeof from === "number" && from >= 0) return from;
+    }
+    return null;
+  }
+
+  function renderSeatFallback() {
+    if (!seatFallback) return;
+    seatFallback.innerHTML = "";
+    if (sceneState !== "failed" || !view) return;
+    view.seats.forEach((seat) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = seat.alive ? seat.name : `${seat.name} (dead)`;
+      btn.addEventListener("click", () => onSeatClick(seat.seatId));
+      seatFallback.appendChild(btn);
+    });
+  }
+
+  function syncScene() {
+    if (!view) {
+      sceneApi.sync({
+        phase: "lobby",
+        seats: [],
+        youSeatId: null,
+        speakerSeatId: null,
+        voteSeatId: null,
+        interactive: false,
+      });
+      renderSeatFallback();
+      return;
+    }
+    const admin = view.allowed.admin || [];
+    const acts = view.allowed.act || [];
+    const voteSeat =
+      view.phase === "vote" && view.meta?.youVoted
+        ? view.meta.yourVoteTarget
+        : selectedSeatId;
+    sceneApi.sync({
+      phase: view.phase,
+      seats: view.seats,
+      youSeatId: view.you.seatId,
+      speakerSeatId: speakerSeatId(),
+      voteSeatId: voteSeat,
+      interactive: admin.includes("setAlive") || acts.includes("vote"),
+    });
+    renderSeatFallback();
   }
 
   function tryResume() {
@@ -428,7 +522,6 @@
     }
 
     const humanNight = isNight && view.you.kind === "human";
-    const canVote = isVote && view.allowed.act.includes("vote");
     if (nightVeil) {
       nightVeil.hidden = !humanNight;
     }
@@ -475,13 +568,6 @@
     }
 
     const msgs = view.channels.public || [];
-    const recentSpeakers = new Set();
-    for (let i = msgs.length - 1; i >= 0 && recentSpeakers.size < 3; i--) {
-      const m = msgs[i];
-      if (typeof m.fromSeat === "number" && m.fromSeat >= 0) {
-        recentSpeakers.add(m.fromSeat);
-      }
-    }
     if (msgs.length > lastPublicLen) {
       const newest = msgs[msgs.length - 1];
       if (newest && /vanished/i.test(newest.text || "")) {
@@ -513,91 +599,15 @@
       prevAlive.set(s.seatId, s.alive);
     });
 
-    const n = Math.max(view.seats.length, 1);
-    table.innerHTML = "";
-    view.seats.forEach((seat, i) => {
-      const el = document.createElement("div");
-      const classes = ["seat"];
-      if (seat.kind) classes.push(seat.kind);
-      if (seat.seatId === view.you.seatId) classes.push("you");
-      if (!seat.alive) classes.push("dead");
-      if (selectedSeatId === seat.seatId) classes.push("selected");
-      if (isVote && view.meta?.youVoted && view.meta.yourVoteTarget === seat.seatId) {
-        classes.push("voted", "vote-target");
-      }
-      if (seat.alive && recentSpeakers.has(seat.seatId) && !humanNight) {
-        classes.push("spoke");
-      }
-      if (vanishSeats.has(seat.seatId)) classes.push("vanish");
-      if (humanNight && seat.alive) classes.push("silhouette");
-      if (
-        isNight &&
-        view.you.kind === "bot" &&
-        seat.seatId === view.you.seatId &&
-        view.meta?.shadowLabel
-      ) {
-        classes.push("hood");
-      }
-      el.className = classes.join(" ");
-      const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
-      const r = 38;
-      el.style.left = `${50 + r * Math.cos(angle)}%`;
-      el.style.top = `${50 + r * Math.sin(angle)}%`;
-      const kindHtml =
-        seat.kind != null
-          ? `<span class="kind">${escapeHtml(seat.kind)}</span>`
-          : "";
-      const chip = evidenceChips.get(seat.seatId);
-      const chipHtml =
-        chip && seat.alive && !humanNight
-          ? `<span class="evidence">${escapeHtml(chip)}</span>`
-          : "";
-      let labelHtml;
-      if (humanNight && seat.alive) {
-        labelHtml = `<span class="hood-icon" aria-hidden="true"></span><span class="sil-label">?</span>`;
-      } else if (
-        isNight &&
-        view.you.kind === "bot" &&
-        seat.seatId === view.you.seatId &&
-        view.meta?.shadowLabel
-      ) {
-        labelHtml = `<span class="hood-icon" aria-hidden="true"></span><span>${escapeHtml(view.meta.shadowLabel.replace(/^Shadow\s+/i, "S."))}</span>`;
-      } else {
-        labelHtml = `<span>${escapeHtml(shortName(seat.name))}</span>`;
-      }
-      el.innerHTML = `${labelHtml}${kindHtml}${chipHtml}`;
-      el.title = humanNight && seat.alive
-        ? "A seat in the dark"
-        : seat.alive
-          ? chip
-            ? `${seat.name} · ${chip}`
-            : seat.name
-          : `${seat.name} (dead)`;
-
-      if (canVote && seat.alive) {
-        el.style.cursor = "pointer";
-        el.addEventListener("click", () => {
-          selectedSeatId = seat.seatId;
-          socket.emit("act", { type: "vote", payload: { seatId: seat.seatId } });
-        });
-      } else if (
-        !isVote &&
-        (view.allowed.admin || []).includes("setAlive")
-      ) {
-        el.style.cursor = "pointer";
-        el.addEventListener("click", () => {
-          selectedSeatId = seat.seatId;
-          socket.emit("setAlive", { seatId: seat.seatId, alive: !seat.alive });
-        });
-      }
-      table.appendChild(el);
-    });
-
+    if (selectedSeatId != null && !view.seats.some((s) => s.seatId === selectedSeatId)) {
+      selectedSeatId = null;
+    }
     if (vanishSeats.size) {
       setTimeout(() => {
         vanishSeats.clear();
       }, 1200);
     }
+    syncScene();
     chat.innerHTML = msgs
       .map((m) => {
         const isTown = m.name === "Town" || m.fromSeat === -1;
@@ -682,4 +692,40 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
+
+  async function initScene() {
+    try {
+      const mod = await import("./scene.js");
+      const api = mod.createTableScene(canvas, {
+        onSeatClick,
+        onUnavailable: () =>
+          showWebglFallback(
+            "3D view unavailable — this browser has no WebGL. Seats are listed below; chat and phase controls still work."
+          ),
+      });
+      sceneApi = api;
+      if (!api.available) {
+        showWebglFallback(
+          "3D view unavailable — this browser has no WebGL. Seats are listed below; chat and phase controls still work."
+        );
+      } else {
+        sceneState = "ready";
+        if (fallbackEl) fallbackEl.hidden = true;
+      }
+      syncScene();
+    } catch (err) {
+      console.error(err);
+      showWebglFallback(
+        "3D view failed to load. Seats are listed below; chat and phase controls still work."
+      );
+    }
+  }
+
+  window.__dining = {
+    debug: () => sceneApi.debug(),
+    projectSeat: (seatId) => sceneApi.projectSeat(seatId),
+    ready: () => sceneState === "ready",
+  };
+
+  initScene();
 })();

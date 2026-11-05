@@ -21,6 +21,12 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -37,6 +43,17 @@ body {
   background-repeat: no-repeat;
   background-attachment: fixed;
   transition: background-color 0.6s ease;
+}
+
+#scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  user-select: none;
 }
 
 /* Phase stage lighting */
@@ -99,17 +116,41 @@ body::before {
 .panel,
 .game {
   position: relative;
-  z-index: 1;
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 1.25rem;
+  z-index: 2;
+}
+
+.game {
+  position: fixed;
+  inset: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0.7rem;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 0.55rem;
+  pointer-events: none;
+  background: none;
+}
+
+.game > .bar,
+.game > .now-banner,
+.game > .stage-ui,
+.game > .error {
+  pointer-events: auto;
 }
 
 .join {
-  margin-top: 7vh;
+  position: fixed;
+  z-index: 5;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  width: min(460px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
   display: grid;
   gap: 0.9rem;
-  max-width: 460px;
   padding: 1.5rem 1.35rem 1.35rem;
   background:
     linear-gradient(180deg, rgba(201, 162, 39, 0.08), transparent 28%),
@@ -266,11 +307,12 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  margin: 0 0 1rem;
+  margin: 0;
   padding: 0.85rem 1rem;
-  background: linear-gradient(90deg, #2a2014 0%, #1a1410 100%);
+  background: linear-gradient(90deg, rgba(42, 32, 20, 0.94) 0%, rgba(26, 20, 16, 0.92) 100%);
   border: 4px solid var(--accent);
   box-shadow: 4px 4px 0 var(--shadow);
+  z-index: 3;
 }
 
 .now-banner strong {
@@ -406,15 +448,16 @@ body.has-sealed-prompt .now-banner span {
 .bar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   flex-wrap: wrap;
   padding: 0.75rem 0.9rem;
-  background: linear-gradient(90deg, #241810 0%, #16110e 100%);
+  background: linear-gradient(90deg, rgba(36, 24, 16, 0.94) 0%, rgba(22, 17, 14, 0.92) 100%);
   border: 4px solid var(--line);
   border-left: 5px solid var(--neon);
   box-shadow: 5px 5px 0 var(--shadow);
+  z-index: 3;
 }
 
 .phase-hud {
@@ -495,17 +538,34 @@ body.has-sealed-prompt .now-banner span {
   box-shadow: 0 0 0 2px var(--neon);
 }
 
-.layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+.stage-ui {
+  position: relative;
+  min-height: 0;
+  pointer-events: none;
+}
+
+.stage-ui .hint,
+.stage-ui .night-veil,
+.stage-ui .chat-wrap {
+  pointer-events: auto;
+}
+
+.stage-ui .hint {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  max-width: min(420px, 46vw);
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+  color: var(--muted);
+  font-size: 1rem;
+  background: rgba(12, 9, 8, 0.82);
+  border: 3px solid var(--line);
+  z-index: 2;
 }
 
 @media (max-width: 720px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-
   body {
     font-size: 20px;
   }
@@ -513,15 +573,20 @@ body.has-sealed-prompt .now-banner span {
   .join h1 {
     font-size: 2.1rem;
   }
+
+  .stage-ui .hint {
+    display: none;
+  }
+
+  .chat-wrap {
+    left: 0 !important;
+    width: auto !important;
+    max-height: 46vh;
+  }
 }
 
 .table-wrap {
-  padding: 0.75rem;
-  background:
-    linear-gradient(180deg, rgba(61, 74, 50, 0.15), transparent 40%),
-    linear-gradient(180deg, #241810, var(--panel));
-  border: 4px solid var(--line);
-  box-shadow: 5px 5px 0 var(--shadow);
+  display: none;
 }
 
 .table {
@@ -625,16 +690,12 @@ body.has-sealed-prompt .now-banner span {
   display: none;
 }
 
-.table-wrap {
-  position: relative;
-}
-
 .night-veil {
   position: absolute;
   left: 50%;
-  top: 8%;
+  top: 1.2rem;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: 3;
   margin: 0;
   padding: 0.35rem 0.7rem;
   font-family: var(--font-display);
@@ -686,22 +747,22 @@ body.has-sealed-prompt .now-banner span {
   background: #243048;
 }
 
-.hint {
-  text-align: center;
-  color: var(--muted);
-  font-size: 1rem;
-  margin: 0.75rem 0 0;
-}
-
 .chat-wrap {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: min(380px, 42vw);
   display: flex;
   flex-direction: column;
-  min-height: 320px;
-  background: linear-gradient(180deg, #221810, #14100c);
+  min-height: 0;
+  max-height: none;
+  background: linear-gradient(180deg, rgba(34, 24, 16, 0.94), rgba(20, 16, 12, 0.94));
   border: 4px solid var(--line);
   border-radius: 0;
   padding: 0.75rem;
   box-shadow: 5px 5px 0 var(--shadow);
+  z-index: 2;
 }
 
 .chat-wrap::after {
@@ -729,13 +790,14 @@ body.has-sealed-prompt .now-banner span {
 }
 
 .chat {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   margin-bottom: 0.75rem;
-  max-height: 360px;
+  max-height: none;
   background: #0c0908;
   border: 3px solid var(--line);
   padding: 0.5rem;
@@ -765,6 +827,53 @@ body.has-sealed-prompt .now-banner span {
   font-family: var(--font-display);
   font-size: 0.5rem;
   line-height: 1.5;
+}
+
+.game .error {
+  position: absolute;
+  left: 0.7rem;
+  bottom: 4.2rem;
+  z-index: 3;
+  max-width: min(420px, 50vw);
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  background: rgba(12, 9, 8, 0.92);
+  border: 3px solid var(--neon);
+}
+
+.webgl-fallback {
+  position: fixed;
+  z-index: 4;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 2rem));
+  padding: 0.8rem 1rem;
+  background: var(--panel);
+  border: 4px solid var(--line);
+  box-shadow: 5px 5px 0 var(--shadow);
+  pointer-events: auto;
+}
+
+.webgl-fallback p {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+#seat-fallback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+#seat-fallback:empty {
+  margin-top: 0;
+}
+
+#seat-fallback button {
+  font-size: 0.45rem;
+  padding: 0.45rem 0.55rem;
 }
 
 [hidden] {

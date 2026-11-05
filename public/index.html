@@ -11,8 +11,22 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/build/three.module.js"
+        }
+      }
+    </script>
   </head>
   <body>
+    <canvas id="scene" aria-label="Dining hall"></canvas>
+
+    <div id="webgl-fallback" class="webgl-fallback" hidden>
+      <p id="webgl-fallback-msg">3D view unavailable — this browser has no WebGL.</p>
+      <div id="seat-fallback"></div>
+    </div>
+
     <div id="join-screen" class="panel join">
       <p class="eyebrow">TOWN HALL · MEMBERS ONLY</p>
       <h1>THE CLUB</h1>
@@ -46,7 +60,7 @@
             <button type="button" id="reset-room-btn">CLEAR TABLE</button>
           </div>
           <p id="lobby-status" class="host-hint" hidden></p>
-          <p id="host-hint" class="host-hint">Click a seat to kill / revive</p>
+          <p id="host-hint" class="host-hint">Click a person at the table to vote or (host) kill / revive</p>
         </div>
       </header>
 
@@ -55,12 +69,9 @@
         <span id="now-detail">Host ADD BOT, then press READY.</span>
       </div>
 
-      <main class="layout">
-        <section class="table-wrap">
-          <p id="night-veil" class="night-veil" hidden>SHADOWS MOVE</p>
-          <div id="table" class="table" aria-label="Seats"></div>
-          <p class="hint">Follow the gold banner. Flow: READY → day talk → crisis → vote → night → day.</p>
-        </section>
+      <div class="stage-ui">
+        <p id="night-veil" class="night-veil" hidden>SHADOWS MOVE</p>
+        <p class="hint">Follow the gold banner. Click seats in the hall. Flow: READY → day talk → crisis → vote → night → day.</p>
         <section id="chat-wrap" class="chat-wrap">
           <div id="window-banner" class="window-banner" hidden>
             <span id="window-status">Blind write open</span>
@@ -88,7 +99,7 @@
           <p id="your-draft" class="your-draft" hidden></p>
           <button id="ready-btn" type="button" class="secondary">READY</button>
         </section>
-      </main>
+      </div>
       <p id="game-error" class="error" hidden></p>
     </div>
 

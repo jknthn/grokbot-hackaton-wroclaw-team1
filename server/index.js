@@ -25,6 +25,11 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const publicDir = path.join(__dirname, "..", "public");
+// Dining-hall UI imports Three as ESM. Serve the package as-is (no bundler).
+app.use(
+  "/vendor/three",
+  express.static(path.join(__dirname, "..", "node_modules", "three"))
+);
 app.use(express.static(publicDir));
 app.get("/stream", (_req, res) => {
   res.sendFile(path.join(publicDir, "stream.html"));
