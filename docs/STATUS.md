@@ -31,13 +31,16 @@ Optional: set `GROK_API_KEY` in Render → Environment for live Grok lines.
 
 ## What is not done yet (Milestone 1)
 
-Swap/add `MafiaRules` (or sibling social rules):
+Product lock: [`locked-loop-v1.md`](locked-loop-v1.md) · checklist: [`m1-acceptance.md`](m1-acceptance.md).
 
-- Private night channel + tagged Mafia agents
-- Phases night / day / vote / reveal
-- `act: vote` (and kill resolution)
-- ≥2 bots with conflicting goals/prompts
-- Pitch refresh for multiagent Mafia claim
+Swap/add town Rules (name TBD) — **not** private mafia night:
+
+- Phases `talk → crisis → vote → night`
+- Crisis majority / fail → random human casualty (role hidden)
+- `act: vote` — majority of living seats; reveal on kick
+- Night strike: each bot, 1 token, target **any** living seat (no kind roster); ≤1 death
+- Bots know they are bots; infer allies in public; no private bot channel
+- Win checks after crisis / vote / night
 
 Kernel / sockets / seat UI should stay; only `server/rules/` + bot prompts grow.
 

@@ -1,3 +1,5 @@
+> **v1 product lock:** see [`locked-loop-v1.md`](locked-loop-v1.md). Each bot knows *it* is a bot (not who else is); town hall only; talk → crisis → vote → night strike (any living seat). Soft public alliance after inference is allowed; private bot channel is not. The colluding-mafia night channel below is **superseded for v1** (historical / alternate Rules sketch). Kernel sections still apply.
+
 # GrokMafia — 3-Hour Multiagent Pitch
 
 ## One-line pitch
