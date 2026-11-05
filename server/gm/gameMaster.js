@@ -53,14 +53,43 @@ function shadowVotesCast(room) {
 
 function startGameMaster(room, opts = {}) {
   const enabled = opts.enabled ?? process.env.GM_AUTO !== "0";
-  const windowMs = Number(opts.windowMs || process.env.GM_WINDOW_MS || 45000);
-  const voteMs = Number(opts.voteMs || process.env.GM_VOTE_MS || 45000);
-  const nightTalkMs = Number(opts.nightTalkMs || process.env.GM_NIGHT_TALK_MS || 20000);
+  const baseWindowMs = Number(opts.windowMs || process.env.GM_WINDOW_MS || 45000);
+  const baseVoteMs = Number(opts.voteMs || process.env.GM_VOTE_MS || 45000);
+  const baseNightTalkMs = Number(
+    opts.nightTalkMs || process.env.GM_NIGHT_TALK_MS || 20000
+  );
   const nightVoteMs = Number(opts.nightVoteMs || process.env.GM_NIGHT_VOTE_MS || 20000);
   const nightDefendMs = Number(
     opts.nightDefendMs || process.env.GM_NIGHT_DEFEND_MS || 12000
   );
   const tickMs = Number(opts.tickMs || process.env.GM_TICK_MS || 1000);
+  const favorWriteBonus = Number(opts.favorWriteBonus || 12000);
+  const againstWriteCut = Number(opts.againstWriteCut || 12000);
+  const favorNightCut = Number(opts.favorNightCut || 6000);
+  const againstNightBonus = Number(opts.againstNightBonus || 8000);
+
+  function tempo() {
+    const slow = room.meta?.slowdown;
+    if (slow === "favor") {
+      return {
+        windowMs: baseWindowMs + favorWriteBonus,
+        voteMs: baseVoteMs + 5000,
+        nightTalkMs: Math.max(8000, baseNightTalkMs - favorNightCut),
+      };
+    }
+    if (slow === "against") {
+      return {
+        windowMs: Math.max(15000, baseWindowMs - againstWriteCut),
+        voteMs: Math.max(20000, baseVoteMs - 8000),
+        nightTalkMs: baseNightTalkMs + againstNightBonus,
+      };
+    }
+    return {
+      windowMs: baseWindowMs,
+      voteMs: baseVoteMs,
+      nightTalkMs: baseNightTalkMs,
+    };
+  }
 
   let busy = false;
   let stopped = false;
@@ -183,6 +212,7 @@ function startGameMaster(room, opts = {}) {
     const bots = livingBots(room);
 
     if (stage === "talk") {
+      const { nightTalkMs } = tempo();
       if (elapsed >= nightTalkMs) {
         room.announce("Shadow talk ends — strike votes.");
         room.setNightStage("vote");
@@ -237,6 +267,7 @@ function startGameMaster(room, opts = {}) {
       if (room.phase === "talk") {
         await ensureWindow("talk");
         const submitted = room.window?.drafts?.size || 0;
+        const { windowMs } = tempo();
         if ((living > 0 && submitted >= living) || elapsed >= windowMs) {
           await closeAndAdvance("crisis");
         }
@@ -246,6 +277,7 @@ function startGameMaster(room, opts = {}) {
       if (room.phase === "crisis") {
         await ensureWindow("crisis");
         const submitted = room.window?.drafts?.size || 0;
+        const { windowMs } = tempo();
         if ((living > 0 && submitted >= living) || elapsed >= windowMs) {
           await closeAndAdvance("vote");
         }
@@ -254,6 +286,7 @@ function startGameMaster(room, opts = {}) {
 
       if (room.phase === "vote") {
         const cast = votesCast(room);
+        const { voteMs } = tempo();
         if ((living > 0 && cast >= living) || elapsed >= voteMs) {
           room.announce(
             cast >= living
