@@ -954,10 +954,10 @@ export function createTableScene(canvas, hooks = {}) {
     if (rec.rings.you.visible) {
       const pulse = 1.05 + Math.sin(t * 3.2) * 0.12;
       rec.rings.you.scale.set(pulse, pulse, pulse);
-      rec.label.sprite.scale.set(1.15, 0.32, 1);
+      rec.label.sprite.scale.set(0.92, 0.24, 1);
     } else {
       rec.rings.you.scale.set(1, 1, 1);
-      rec.label.sprite.scale.set(1, 0.28, 1);
+      rec.label.sprite.scale.set(0.74, 0.185, 1);
     }
     if (rec.rings.speaker.visible) {
       const pulse = 1 + Math.sin(t * 4.5) * 0.07;
