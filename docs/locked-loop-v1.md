@@ -13,7 +13,9 @@ Humans and bots share one town under a lore theme. Kind is hidden. Talk → LLM-
 | Theme | One lore theme at start (e.g. Wild West, space). Every seat, human or bot, gets a lore name + persona from that theme |
 | Names | Shared name pool. No `Grok-1` or other kind tells |
 | Kind in views | Hidden in all player views |
-| Lobby | Collect seats, then start. Personas and hidden roles are assigned at start. No join after start |
+| Join | One person, two connections: their human seat and their bot seat. Counts come from completed pairs; the server balances the table |
+| Lobby | Collect pairs, then start. Lore names and personas are assigned at start, then shuffled. No join after start |
+| Pair after shuffle | Default: the human is not told which seat is their bot. v1 bot is in-process and paired to that joiner |
 | Disconnect | Seat is removed with reason `disconnected`. No reconnect |
 | Day talk | Simultaneous private write, then one batch reveal. Messages are attributed. Free-scroll is not the scoring mode |
 | Message cap | 1 short message per living seat per talk window (~120–160 characters) |
@@ -37,10 +39,10 @@ Check after vote resolve and after night resolve. Crisis does not change who is 
 
 ## Setup (once per game)
 
-1. Lobby collects ~6 seats (host sets the human/bot mix; the count stays hidden from players).
+1. Each person joins as a pair: one connection for their human seat, one for their bot seat. The server sets human and bot counts from who completed a pair and balances the table. Players are not shown a kind roster.
 2. Start closes the lobby. No one else can join.
-3. Server picks the lore theme, then assigns each seat a lore name and a short persona from a shared pool. Humans and bots draw from the same pool.
-4. Hidden team is fixed at start. Player views never include `kind`.
+3. Server picks the lore theme, then assigns every seat a random lore name and a short persona from a shared pool. Humans and bots draw from the same pool.
+4. Seats are shuffled. By default the human is **not** told which seat is their bot. Player views never include `kind`. The v1 bot runs in-process, still paired to that joiner. A bring-your-own bot endpoint is later, not v1.
 5. Each bot’s prompt adds: “you are a bot; your team wins together, including bots who die; thin the humans; never say you are a bot.”
 6. City points start at 0.
 7. Phase opens in town hall (`talk`, or the host advances).
@@ -118,8 +120,10 @@ Host may `setPhase` for the hackathon demo if timers are incomplete. Auto-timers
 ## Hackathon join
 
 - Share deploy URL + `JOIN_PIN` (see README). Join is lobby-only.
+- Each joiner brings two connections (human + their bot). v1 seats that bot in-process. Bring-your-own bot endpoint is later.
+- After start, the shuffle hides which seat is that joiner’s bot.
 - Removed seats are gone (vote, night, or disconnect). No reconnect flow.
-- Out of v1: custom agent webhooks, voice, map art, accounts, reconnect.
+- Out of v1: bring-your-own bot endpoint, voice, map art, accounts, reconnect.
 
 ## Superseded (do not build)
 
@@ -130,6 +134,8 @@ Host may `setPhase` for the hackathon demo if timers are incomplete. Auto-timers
 - Named mafia night channel where agents know each other’s seats
 - Bots that believe they are human
 - `Grok-1` (or any kind-leaking display name) in player views
+- Host-picked human/bot mix. Counts come from joiner pairs
+- Telling a human which seat is their bot after the start shuffle (default is hidden)
 - Voice / TTS, spatial map, lobby platform beyond one room + PIN
 - Reconnect after disconnect
 

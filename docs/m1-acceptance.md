@@ -5,7 +5,10 @@ Product: [`locked-loop-v1.md`](locked-loop-v1.md).
 Superseded, do not implement: solo strike tokens, “no private bot chat,” reveal-on-kick, crisis auto-kill, string-majority crisis.
 
 - [ ] Rules module for talk → crisis → vote → night (kernel still role-agnostic)
-- [ ] Lobby collects seats; start assigns a theme lore name + persona to every seat from a shared pool; no join after start
+- [ ] Each joiner opens two connections: a human seat and their bot seat. Counts come from completed pairs; the server balances the table
+- [ ] v1 bot is in-process and paired to that joiner. A bring-your-own bot endpoint is out of v1
+- [ ] Lobby collects pairs; no join after start. Start assigns a theme, then random lore names and personas from a shared pool, then shuffles
+- [ ] After the shuffle, the human is not told which seat is their bot (default)
 - [ ] Disconnect removes the seat with reason `disconnected`; no reconnect
 - [ ] Player views hide `kind`; no `Grok-1` or other kind tells
 - [ ] Bots prompted as bots with a team win (dead bots share it) and a strong never-confess line; prompt-injection risk accepted, no extra filter required

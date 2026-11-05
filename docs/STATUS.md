@@ -45,7 +45,7 @@ Gameplay rules are specified in [locked-loop-v1.md](locked-loop-v1.md). Kernel /
 - Crisis fail auto-kills a random human (or resolves by string majority)
 - Named colluding-mafia night channel in [grokmafia-plan.md](grokmafia-plan.md) — historical sketch only
 
-**Locked instead:** shared lore names, `kind` hidden in player views, simultaneous attributed talk, LLM-judged crisis that pays city points or a slowdown, vote without a reveal, anonymous `Shadow A/B/…` night (reshuffled, majority kill, city points can block). Team win: dead bots share it. No join after start; disconnect removes the seat.
+**Locked instead:** each joiner brings a human seat and an in-process bot seat (counts from pairs; the table balances); at start, shared lore names then a shuffle so the human is not told which seat is their bot; `kind` hidden in player views; simultaneous attributed talk; LLM-judged crisis that pays city points or a slowdown; vote without a reveal; anonymous `Shadow A/B/…` night (reshuffled, majority kill, city points can block). Team win: dead bots share it. No join after start; disconnect removes the seat. Bring-your-own bot endpoint is later.
 
 ## Ops notes
 
