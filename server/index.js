@@ -31,6 +31,9 @@ app.use(
   express.static(path.join(__dirname, "..", "node_modules", "three"))
 );
 app.use(express.static(publicDir));
+app.get("/demo", (_req, res) => {
+  res.sendFile(path.join(publicDir, "demo.html"));
+});
 app.get("/stream", (_req, res) => {
   res.sendFile(path.join(publicDir, "stream.html"));
 });
@@ -277,6 +280,7 @@ if (!USE_SANDBOX && process.env.GM_AUTO !== "0") {
 server.listen(PORT, HOST, () => {
   console.log("");
   console.log(`  Game kernel listening on http://${HOST}:${PORT}`);
+  console.log(`  Walkthrough demo: http://${HOST}:${PORT}/demo`);
   console.log(`  TV stream: http://${HOST}:${PORT}/stream`);
   console.log(`  Rules: ${USE_SANDBOX ? "sandbox" : "town"}`);
   console.log(`  JOIN_PIN set (len=${String(JOIN_PIN).length}); always also accepts 4821`);
