@@ -1,10 +1,9 @@
 /**
  * GM narration helpers — theme pick + short prompts.
- * LLM when GROK_API_KEY is set; canned fallback otherwise.
+ * LLM when GROK_API_KEY is set; theme-native canned fallback otherwise.
  */
 
 const lore = require("../lore");
-const { TALK_PROMPTS, CRISIS_PROMPTS } = require("../rules/town");
 
 function parseJson(raw) {
   const text = String(raw ?? "").trim();
@@ -23,12 +22,19 @@ function fallbackTheme(themes) {
   return list[Math.floor(Math.random() * list.length)]?.id || lore.DEFAULT_THEME;
 }
 
-function fallbackTalk(index = 0) {
-  return TALK_PROMPTS[index % TALK_PROMPTS.length];
+function fallbackTalk(index = 0, themeId) {
+  return lore.pickTalkPrompt(themeId || lore.DEFAULT_THEME, index);
 }
 
-function fallbackCrisis(index = 0) {
-  return CRISIS_PROMPTS[index % CRISIS_PROMPTS.length];
+function fallbackCrisis(index = 0, themeId) {
+  return lore.pickCrisisPrompt(themeId || lore.DEFAULT_THEME, index);
+}
+
+function clipRecent(recent, maxChars = 600) {
+  const text = String(recent || "").trim();
+  if (!text) return "";
+  if (text.length <= maxChars) return text;
+  return text.slice(text.length - maxChars);
 }
 
 async function callGrok(messages, opts = {}) {
@@ -82,17 +88,24 @@ async function pickTheme(themes, opts = {}) {
 }
 
 async function writeTalkPrompt(themeLabel, opts = {}) {
+  const themeId = opts.themeId || lore.DEFAULT_THEME;
+  const day = Number(opts.day) || 1;
+  const recent = clipRecent(opts.recent);
   const content = await callGrok(
     [
       {
         role: "system",
         content:
           "Write one short day prompt for townsfolk (under 20 words). " +
+          "Force suspicion, alliance, or accusation in one line. Stay on theme. " +
           'Reply ONLY JSON: {"prompt":"..."}',
       },
       {
         role: "user",
-        content: `Theme: ${themeLabel || "town"}. Ask them to reveal suspicion or alliance in one line.`,
+        content:
+          `Theme: ${themeLabel || "town"} (${themeId}). Day ${day}.` +
+          (recent ? `\nRecent public lines:\n${recent}` : "") +
+          "\nAsk them to reveal suspicion or alliance in one line.",
       },
     ],
     opts
@@ -100,21 +113,30 @@ async function writeTalkPrompt(themeLabel, opts = {}) {
   const parsed = parseJson(content);
   const prompt = String(parsed?.prompt || "").trim();
   if (prompt) return prompt.slice(0, 160);
-  return fallbackTalk(opts.index || 0);
+  return fallbackTalk(opts.index || 0, themeId);
 }
 
 async function writeCrisisPrompt(themeLabel, opts = {}) {
+  const themeId = opts.themeId || lore.DEFAULT_THEME;
+  const day = Number(opts.day) || 1;
+  const recent = clipRecent(opts.recent);
   const content = await callGrok(
     [
       {
         role: "system",
         content:
           "Write one short town crisis question (under 25 words). Soft stakes only — nobody dies from the answer. " +
+          "Stay on theme. If you mention rumors, list them concretely in the question. " +
           'Reply ONLY JSON: {"prompt":"..."}',
       },
       {
         role: "user",
-        content: `Theme: ${themeLabel || "town"}.`,
+        content:
+          `Theme: ${themeLabel || "town"} (${themeId}). Day ${day}.` +
+          (recent
+            ? `\nRecent public lines (react to 1–2 if useful):\n${recent}`
+            : "") +
+          "\nAsk one concrete town problem the table must answer in one line each.",
       },
     ],
     opts
@@ -122,7 +144,7 @@ async function writeCrisisPrompt(themeLabel, opts = {}) {
   const parsed = parseJson(content);
   const prompt = String(parsed?.prompt || "").trim();
   if (prompt) return prompt.slice(0, 200);
-  return fallbackCrisis(opts.index || 0);
+  return fallbackCrisis(opts.index || 0, themeId);
 }
 
 module.exports = {

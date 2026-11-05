@@ -21,9 +21,27 @@ const ENTRIES = [
   { name: "Pete Lang", persona: "A greenhorn cowboy trying to sound local." },
 ];
 
+const TALK_PROMPTS = [
+  "Name one ally at this table and why you trust them — one short line.",
+  "Who at this saloon is hiding a tell — and what is it?",
+  "Which trail rumor would get someone shot before dawn?",
+  "Who should ride the night watch, and why them?",
+  "Name the seat you would not turn your back on.",
+];
+
+const CRISIS_PROMPTS = [
+  "The town well is failing. What do we do before night?",
+  "Dust storm seals the road. Where do we shelter, and who keeps watch?",
+  "Four rumors hit the saloon: poisoned well, missing stage, crooked deputy, claim jump. Which two do we act on?",
+  "The telegraph line is cut. Who do we send, and with what message?",
+  "A fire starts at the livery. What is the first move that saves the town?",
+];
+
 module.exports = {
   theme: "wildWest",
   themeLabel: "Wild West",
   ENTRIES,
+  TALK_PROMPTS,
+  CRISIS_PROMPTS,
   deal: makeDeal(ENTRIES),
 };

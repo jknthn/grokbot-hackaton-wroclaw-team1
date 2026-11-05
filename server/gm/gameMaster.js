@@ -18,6 +18,25 @@ function livingCount(room) {
   return n;
 }
 
+function recentPublicLines(room, max = 8) {
+  const msgs = room.channels?.public || [];
+  const lines = [];
+  for (let i = msgs.length - 1; i >= 0 && lines.length < max; i--) {
+    const m = msgs[i];
+    if (typeof m?.fromSeat === "number" && m.fromSeat >= 0) {
+      lines.push(`${m.name}: ${m.text}`);
+    }
+  }
+  return lines.reverse().join("\n");
+}
+
+function refreshGuideDetail(room, detail) {
+  if (!room.meta) room.meta = {};
+  if (!room.meta.guide) room.meta.guide = { action: "", detail: "", at: Date.now() };
+  room.meta.guide.detail = String(detail || "").slice(0, 200);
+  room.meta.guide.at = Date.now();
+}
+
 function livingBots(room) {
   return [...room.players.values()].filter((p) => p.alive && p.kind === "bot");
 }
@@ -59,6 +78,10 @@ function startGameMaster(room, opts = {}) {
       stageStartedAt = Date.now();
       windowOpenedForPhase = null;
       lastNightStage = room.meta?.night?.stage || null;
+      if (room.meta) {
+        if (phase !== "talk") delete room.meta._gmTalkApplied;
+        if (phase !== "crisis") delete room.meta._gmCrisisApplied;
+      }
     }
   }
 
@@ -91,28 +114,36 @@ function startGameMaster(room, opts = {}) {
   async function ensureWindow(phase) {
     if (room.window) return;
     if (windowOpenedForPhase === phase) return;
-    if (phase === "talk") {
-      if (!room.meta) room.meta = {};
-      if (!room.meta.talkPrompt) {
-        const prompt = await writeTalkPrompt(room.meta?.themeLabel, {
-          index: room.meta.talkIndex || 0,
-        });
-        room.meta._gmTalkPrompt = prompt;
-        room.announce(`DAY: ${prompt}`);
-        room.meta.talkPrompt = prompt;
-      }
+    if (!room.meta) room.meta = {};
+
+    if (phase === "talk" && !room.meta._gmTalkApplied) {
+      const day = Math.max(1, Number(room.meta.talkIndex) || 1);
+      const prompt = await writeTalkPrompt(room.meta?.themeLabel, {
+        index: Math.max(0, day - 1),
+        themeId: room.meta?.theme || room.meta?.selectedTheme,
+        day,
+        recent: recentPublicLines(room),
+      });
+      room.meta.talkPrompt = prompt;
+      room.meta._gmTalkApplied = true;
+      refreshGuideDetail(room, prompt);
+      room.announce(`DAY prompt locked: ${prompt}`);
     }
-    if (phase === "crisis") {
-      if (!room.meta) room.meta = {};
-      if (room.meta._wantGmCrisis) {
-        const prompt = await writeCrisisPrompt(room.meta?.themeLabel, {
-          index: room.meta.crisisIndex || 0,
-        });
-        room.meta.crisisPrompt = prompt;
-        room.announce(`CRISIS: ${prompt}`);
-        delete room.meta._wantGmCrisis;
-      }
+
+    if (phase === "crisis" && !room.meta._gmCrisisApplied) {
+      const day = Math.max(1, Number(room.meta.talkIndex) || 1);
+      const prompt = await writeCrisisPrompt(room.meta?.themeLabel, {
+        index: Math.max(0, Number(room.meta.crisisIndex) || 1) - 1,
+        themeId: room.meta?.theme || room.meta?.selectedTheme,
+        day,
+        recent: recentPublicLines(room),
+      });
+      room.meta.crisisPrompt = prompt;
+      room.meta._gmCrisisApplied = true;
+      refreshGuideDetail(room, prompt);
+      room.announce(`CRISIS prompt locked: ${prompt}`);
     }
+
     if (phase === "talk") {
       room.announce(
         "Write window OPEN — one sealed day line. Submit, then wait for the reveal."

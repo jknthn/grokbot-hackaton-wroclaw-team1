@@ -21,9 +21,27 @@ const ENTRIES = [
   { name: "Chris Bell", persona: "New face from out of town, trying too hard." },
 ];
 
+const TALK_PROMPTS = [
+  "Name one person at this sit-down you trust with a favor — and why.",
+  "Who at this table is hiding a tell, and what is it?",
+  "Which rumor would get someone disappeared before morning?",
+  "Who should watch the door tonight, and why them?",
+  "Name the seat you would not turn your back on.",
+];
+
+const CRISIS_PROMPTS = [
+  "The back room heat is rising. What do we do before the night sit-down?",
+  "A shipment is late and the docks are quiet. Where do we move, and who we send?",
+  "Four rumors: pinched books, a snitch at the diner, a missing envelope, a cousin from out of town. Which two do we act on?",
+  "The phone line to the lawyer is dead. Who do we send, and with what message?",
+  "A fire starts behind the kitchen. What is the first move that keeps the table intact?",
+];
+
 module.exports = {
   theme: "northJersey",
   themeLabel: "North Jersey",
   ENTRIES,
+  TALK_PROMPTS,
+  CRISIS_PROMPTS,
   deal: makeDeal(ENTRIES),
 };

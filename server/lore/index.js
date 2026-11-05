@@ -27,10 +27,24 @@ function isTheme(themeId) {
   return Boolean(PACKS[themeId]);
 }
 
+function pickTalkPrompt(themeId, index = 0) {
+  const pack = getPack(themeId);
+  const list = pack.TALK_PROMPTS || wildWest.TALK_PROMPTS;
+  return list[Math.abs(Number(index) || 0) % list.length];
+}
+
+function pickCrisisPrompt(themeId, index = 0) {
+  const pack = getPack(themeId);
+  const list = pack.CRISIS_PROMPTS || wildWest.CRISIS_PROMPTS;
+  return list[Math.abs(Number(index) || 0) % list.length];
+}
+
 module.exports = {
   PACKS,
   DEFAULT_THEME,
   listThemes,
   getPack,
   isTheme,
+  pickTalkPrompt,
+  pickCrisisPrompt,
 };

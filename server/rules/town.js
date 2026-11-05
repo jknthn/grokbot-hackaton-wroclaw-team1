@@ -12,17 +12,13 @@ const SURVIVE_NIGHTS = 3;
 /** City points that win for humans on underdog tables. */
 const CITY_POINT_GOAL = 4;
 
-const CRISIS_PROMPTS = [
-  "The well is failing. What do we do before night?",
-  "Four rumors are circulating. Which ones should the town act on?",
-  "Name the next shelter and why it holds.",
-];
+/** Theme-native defaults (Wild West) — other packs live under server/lore/. */
+const TALK_PROMPTS = lore.getPack(lore.DEFAULT_THEME).TALK_PROMPTS;
+const CRISIS_PROMPTS = lore.getPack(lore.DEFAULT_THEME).CRISIS_PROMPTS;
 
-const TALK_PROMPTS = [
-  "Name one ally and why you trust them — one short line.",
-  "What rumor worries you most before night?",
-  "Who at this table is hiding something?",
-];
+function themeIdOf(room) {
+  return room.meta?.theme || room.meta?.selectedTheme || lore.DEFAULT_THEME;
+}
 
 function livingPlayers(room) {
   return [...room.players.values()].filter((p) => p.alive);
@@ -571,12 +567,13 @@ const town = {
   onPhaseChange(room, prev, next) {
     if (!room.meta) room.meta = {};
     if (next === "crisis") {
+      delete room.meta._gmCrisisApplied;
       if (room.meta._gmCrisisPrompt) {
         room.meta.crisisPrompt = room.meta._gmCrisisPrompt;
         delete room.meta._gmCrisisPrompt;
       } else {
         const idx = Number(room.meta.crisisIndex) || 0;
-        room.meta.crisisPrompt = CRISIS_PROMPTS[idx % CRISIS_PROMPTS.length];
+        room.meta.crisisPrompt = lore.pickCrisisPrompt(themeIdOf(room), idx);
         room.meta.crisisIndex = idx + 1;
       }
       pushTown(
@@ -591,12 +588,13 @@ const town = {
     }
     if (next === "talk") {
       clearShadowLabels(room);
+      delete room.meta._gmTalkApplied;
       if (room.meta._gmTalkPrompt) {
         room.meta.talkPrompt = room.meta._gmTalkPrompt;
         delete room.meta._gmTalkPrompt;
       } else {
         const idx = Number(room.meta.talkIndex) || 0;
-        room.meta.talkPrompt = TALK_PROMPTS[idx % TALK_PROMPTS.length];
+        room.meta.talkPrompt = lore.pickTalkPrompt(themeIdOf(room), idx);
         room.meta.talkIndex = idx + 1;
       }
       const dayN = Number(room.meta.talkIndex) || 1;
