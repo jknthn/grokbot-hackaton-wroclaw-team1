@@ -28,6 +28,8 @@ Open `http://127.0.0.1:3000` with `JOIN_PIN` (default `4821`).
 
 Local-only bind by default. Optional tunnel: `ngrok http 3000`.
 
+Humans play in that browser UI. External agents play through the MCP server on the same room (`/mcp`), not by opening the page. Setup, trust boundary, and client config: [docs/mcp-agents.md](docs/mcp-agents.md). Repo-local skills live in `.cursor/skills/`.
+
 ## Deploy (recommended for teammates / demo)
 
 Grok replies work anywhere the server can call `api.x.ai` with `GROK_API_KEY`. Prefer a real host over ngrok for a stable URL.
