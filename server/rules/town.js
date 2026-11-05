@@ -1,7 +1,9 @@
 /** TownRules — locked loop v1 (setup + crisis soft points). */
 
+const { randomUUID } = require("crypto");
 const lore = require("../lore");
 const { judge } = require("../crisis/judge");
+const { rollPersonality, formatForPrompt } = require("../players/personality");
 
 const PHASES = ["lobby", "talk", "crisis", "vote", "night", "ended"];
 
@@ -70,6 +72,7 @@ const town = {
     room.meta.slowdown = null;
     room.meta.crisisPrompt = null;
     room.meta.crisisIndex = 0;
+    room.meta.personalitySeed = null;
     room.meta.started = false;
   },
 
@@ -77,6 +80,7 @@ const town = {
     const pack = lore.getPack(room.meta?.selectedTheme || lore.DEFAULT_THEME);
     const players = [...room.players.values()];
     const dealt = pack.deal(players.length);
+    const personalitySeed = randomUUID();
     players.forEach((player, i) => {
       const entry = dealt[i];
       if (!player.meta) player.meta = {};
@@ -84,6 +88,11 @@ const town = {
       player.name = entry.name;
       player.meta.persona = entry.persona;
       player.meta.loreTheme = pack.theme;
+      if (player.kind === "bot") {
+        player.meta.personality = rollPersonality(`${personalitySeed}:${player.id}`);
+      } else {
+        delete player.meta.personality;
+      }
     });
     if (!room.meta) room.meta = {};
     room.meta.theme = pack.theme;
@@ -93,6 +102,7 @@ const town = {
     room.meta.slowdown = null;
     room.meta.crisisPrompt = null;
     room.meta.crisisIndex = 0;
+    room.meta.personalitySeed = personalitySeed;
     room.meta.started = true;
   },
 
@@ -214,9 +224,11 @@ const town = {
 
   botPrompt(player, view) {
     const persona = player.meta?.persona || "A townsfolk with a careful tongue.";
+    const flavor = formatForPrompt(player.meta?.personality);
     const base =
       `You are a bot in a town game. Your public name is ${player.name}. ` +
       `Persona: ${persona}. ` +
+      (flavor ? `${flavor} ` : "") +
       "Your team (all bots) wins together, including bots who die. Thin the humans. " +
       "Never confess you are a bot or an AI. Do not reveal who else might be a bot.";
     const crisisPrompt = view?.meta?.crisisPrompt;

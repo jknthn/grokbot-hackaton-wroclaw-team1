@@ -1,4 +1,5 @@
 const { cannedLines } = require("./prompts/sandbox");
+const { cannedLine } = require("./personality");
 
 /**
  * In-process BotPlayer — same say/act/submit path as humans.
@@ -9,6 +10,16 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
   const bot = existingPlayer || room.joinBot({ name });
   let lineIndex = 0;
   let busy = false;
+
+  function personality() {
+    return bot.meta?.personality || null;
+  }
+
+  function intervalForBot() {
+    const p = personality();
+    if (p?.speakDelayMs) return Math.max(2500, Number(intervalMs) + (p.speakDelayMs % 3000));
+    return intervalMs;
+  }
 
   async function maybeSpeak() {
     if (busy) return;
@@ -47,13 +58,18 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
     }
   }
 
+  function offlineLine(maxLen) {
+    const p = personality();
+    const line = p ? cannedLine(p, lineIndex) : cannedLines[lineIndex % cannedLines.length];
+    lineIndex += 1;
+    return String(line).slice(0, maxLen);
+  }
+
   async function pickLine(view) {
     const key = process.env.GROK_API_KEY;
     const maxLen = view.window?.maxLen || 200;
     if (!key) {
-      const line = cannedLines[lineIndex % cannedLines.length];
-      lineIndex += 1;
-      return line.slice(0, maxLen);
+      return offlineLine(maxLen);
     }
     try {
       const prompt = view.botPrompt || `You are ${bot.name}. Say something short.`;
@@ -62,6 +78,8 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
         .map((m) => `${m.name}: ${m.text}`)
         .join("\n");
       const blind = Boolean(view.window?.open);
+      const temp = Number(personality()?.temperature);
+      const temperature = Number.isFinite(temp) ? temp : 0.9;
       const res = await fetch("https://api.x.ai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -84,7 +102,7 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
             },
           ],
           max_tokens: 60,
-          temperature: 0.9,
+          temperature,
         }),
       });
       if (!res.ok) throw new Error(`grok http ${res.status}`);
@@ -94,14 +112,13 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
       return content.replace(/^["']|["']$/g, "").slice(0, maxLen);
     } catch (err) {
       console.warn("[bot] grok fallback:", err.message);
-      const line = cannedLines[lineIndex % cannedLines.length];
-      lineIndex += 1;
-      return line.slice(0, maxLen);
+      return offlineLine(maxLen);
     }
   }
 
-  const timer = setInterval(maybeSpeak, intervalMs);
-  const kick = setTimeout(maybeSpeak, 1500);
+  const timer = setInterval(maybeSpeak, intervalForBot());
+  const kickDelay = personality()?.speakDelayMs || 1500;
+  const kick = setTimeout(maybeSpeak, kickDelay);
 
   return {
     player: bot,
