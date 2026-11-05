@@ -1,3 +1,5 @@
+> **v1 product lock:** see [`locked-loop-v1.md`](locked-loop-v1.md). Each joiner brings a human seat and an in-process bot; a start shuffle hides which seat is theirs. Lore names, hidden kind, simultaneous talk, LLM crisis → city points, vote without reveal, anonymous Shadow night (labels reshuffle; majority kill; city points can block). **Superseded for v1:** the solo strike-token loop (no private bot chat, reveal on kick, crisis kills a human) and the named colluding-mafia night channel below (kept as a historical Rules sketch). Kernel sections still apply.
+
 # GrokMafia — 3-Hour Multiagent Pitch
 
 ## One-line pitch

@@ -36,7 +36,16 @@ Optional: set `GROK_API_KEY` in Render → Environment for live Grok lines.
 
 ## What is not done yet (Milestone 1)
 
-Gameplay rules (see also locked-loop docs on feature branches if present). Kernel / sockets / seat UI stay; Rules + bot prompts grow. Styling can land independently.
+Gameplay rules are specified in [locked-loop-v1.md](locked-loop-v1.md). Kernel / sockets / seat UI stay; Rules + bot prompts grow. Styling can land independently.
+
+**Superseded for v1** (do not build these):
+
+- Solo night strike token and “no private bot chat”
+- Day vote reveals bot vs human
+- Crisis fail auto-kills a random human (or resolves by string majority)
+- Named colluding-mafia night channel in [grokmafia-plan.md](grokmafia-plan.md) — historical sketch only
+
+**Locked instead:** each joiner brings a human seat and an in-process bot seat (counts from pairs; the table balances); at start, shared lore names then a shuffle so the human is not told which seat is their bot; `kind` hidden in player views; simultaneous attributed talk; LLM-judged crisis that pays city points or a slowdown; vote without a reveal; anonymous `Shadow A/B/…` night (reshuffled, majority kill, city points can block). Team win: dead bots share it. No join after start; disconnect removes the seat. Bring-your-own bot endpoint is later.
 
 ## Ops notes
 
