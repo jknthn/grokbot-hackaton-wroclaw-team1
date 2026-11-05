@@ -48,6 +48,11 @@
   let lastPhase = null;
   let selectedSeatId = null;
   let resumeAttempted = false;
+  /** @type {Map<number, boolean>} */
+  let prevAlive = new Map();
+  /** @type {Set<number>} */
+  let vanishSeats = new Set();
+  let lastPublicLen = 0;
 
   function showError(el, msg) {
     if (!msg) {
@@ -383,6 +388,32 @@
       }
     }
 
+    const msgs = view.channels.public || [];
+    const recentSpeakers = new Set();
+    for (let i = msgs.length - 1; i >= 0 && recentSpeakers.size < 3; i--) {
+      const m = msgs[i];
+      if (typeof m.fromSeat === "number" && m.fromSeat >= 0) {
+        recentSpeakers.add(m.fromSeat);
+      }
+    }
+    if (msgs.length > lastPublicLen) {
+      const newest = msgs[msgs.length - 1];
+      if (newest && /vanished/i.test(newest.text || "")) {
+        view.seats.forEach((s) => {
+          if (!s.alive && prevAlive.get(s.seatId) === true) {
+            vanishSeats.add(s.seatId);
+          }
+        });
+      }
+    }
+    lastPublicLen = msgs.length;
+    view.seats.forEach((s) => {
+      if (prevAlive.get(s.seatId) === true && !s.alive) {
+        vanishSeats.add(s.seatId);
+      }
+      prevAlive.set(s.seatId, s.alive);
+    });
+
     const n = Math.max(view.seats.length, 1);
     table.innerHTML = "";
     view.seats.forEach((seat, i) => {
@@ -393,8 +424,10 @@
       if (!seat.alive) classes.push("dead");
       if (selectedSeatId === seat.seatId) classes.push("selected");
       if (isVote && view.meta?.youVoted && view.meta.yourVoteTarget === seat.seatId) {
-        classes.push("voted");
+        classes.push("voted", "vote-target");
       }
+      if (seat.alive && recentSpeakers.has(seat.seatId)) classes.push("spoke");
+      if (vanishSeats.has(seat.seatId)) classes.push("vanish");
       el.className = classes.join(" ");
       const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
       const r = 38;
@@ -426,7 +459,11 @@
       table.appendChild(el);
     });
 
-    const msgs = view.channels.public || [];
+    if (vanishSeats.size) {
+      setTimeout(() => {
+        vanishSeats.clear();
+      }, 1200);
+    }
     chat.innerHTML = msgs
       .map((m) => {
         const isTown = m.name === "Town" || m.fromSeat === -1;
