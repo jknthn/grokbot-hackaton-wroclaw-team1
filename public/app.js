@@ -15,6 +15,7 @@
   const youCard = document.getElementById("you-card");
   const youCardName = document.getElementById("you-card-name");
   const youCardMeta = document.getElementById("you-card-meta");
+  const youPin = document.getElementById("you-pin");
   const shadowBanner = document.getElementById("shadow-banner");
   const shadowStatus = document.getElementById("shadow-status");
   const shadowCount = document.getElementById("shadow-count");
@@ -157,9 +158,32 @@
     lastPhase = null;
     game.hidden = true;
     joinScreen.hidden = false;
+    if (youCard) youCard.hidden = true;
+    if (youPin) youPin.hidden = true;
     showError(joinError, message || "");
     showError(gameError, "");
     syncScene();
+  }
+
+  function updateYouPin() {
+    if (!youPin || !view || game.hidden || !sceneApi.available) {
+      if (youPin) youPin.hidden = true;
+      return;
+    }
+    const seatId = view.you?.seatId;
+    if (seatId == null) {
+      youPin.hidden = true;
+      return;
+    }
+    const pos = sceneApi.projectSeat(seatId);
+    if (!pos || pos.behind) {
+      youPin.hidden = true;
+      return;
+    }
+    youPin.hidden = false;
+    youPin.textContent = `YOU · ${shortName(view.you.name)}`;
+    youPin.style.left = `${Math.round(pos.x)}px`;
+    youPin.style.top = `${Math.round(pos.y)}px`;
   }
 
   function onSeatClick(seatId) {
@@ -799,5 +823,11 @@
     ready: () => sceneState === "ready",
   };
 
+  function pinLoop() {
+    updateYouPin();
+    requestAnimationFrame(pinLoop);
+  }
+
   initScene();
+  requestAnimationFrame(pinLoop);
 })();

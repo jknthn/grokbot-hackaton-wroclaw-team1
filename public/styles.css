@@ -139,6 +139,33 @@ body::before {
   pointer-events: auto;
 }
 
+.you-pin {
+  position: fixed;
+  z-index: 3;
+  transform: translate(-50%, -120%);
+  padding: 0.35rem 0.55rem;
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  color: #1a1008;
+  background: var(--accent);
+  border: 3px solid #fff4cc;
+  box-shadow: 3px 3px 0 var(--shadow);
+  pointer-events: none;
+  animation: you-pin-pulse 1.4s ease-in-out infinite;
+}
+
+.you-pin[hidden] {
+  display: none !important;
+}
+
+@keyframes you-pin-pulse {
+  50% {
+    filter: brightness(1.15);
+    transform: translate(-50%, -130%) scale(1.06);
+  }
+}
+
 .you-card {
   display: flex;
   flex-wrap: wrap;
