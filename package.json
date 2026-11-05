@@ -6,7 +6,8 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node server/rules/sandbox.selftest.js && node server/rules/town.selftest.js && node server/players/personality.selftest.js && node server/crisis/judge.selftest.js && node server/room.window.selftest.js && node server/room.reset.selftest.js && node server/room.session.selftest.js && node server/room.pair.selftest.js && node server/room.crisis.selftest.js",
+    "test": "node server/rules/sandbox.selftest.js && node server/rules/town.selftest.js && node server/players/personality.selftest.js && node server/crisis/judge.selftest.js && node server/lore/prompts.selftest.js && node server/room.window.selftest.js && node server/room.reset.selftest.js && node server/room.session.selftest.js && node server/room.pair.selftest.js && node server/room.crisis.selftest.js && node server/room.ready.selftest.js && node server/room.vote.selftest.js && node server/room.night.selftest.js && node server/room.win.selftest.js && node server/gm/gameMaster.selftest.js && node server/gm/tempo.selftest.js && node server/room.stream.selftest.js",
+    "test:stream": "node server/room.stream.selftest.js",
     "test:sandbox": "node server/rules/sandbox.selftest.js",
     "test:town": "node server/rules/town.selftest.js",
     "test:personality": "node server/players/personality.selftest.js",
@@ -14,7 +15,8 @@
     "test:window": "node server/room.window.selftest.js",
     "test:reset": "node server/room.reset.selftest.js",
     "test:session": "node server/room.session.selftest.js",
-    "test:pair": "node server/room.pair.selftest.js"
+    "test:pair": "node server/room.pair.selftest.js",
+    "test:gm": "node server/room.ready.selftest.js && node server/room.vote.selftest.js && node server/gm/gameMaster.selftest.js"
   },
   "engines": {
     "node": ">=18"
@@ -22,6 +24,6 @@
   "dependencies": {
     "express": "^4.21.2",
     "socket.io": "^4.8.1",
-    "three": "0.170.0"
+    "three": "^0.170.0"
   }
 }

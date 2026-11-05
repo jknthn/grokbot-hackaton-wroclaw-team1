@@ -3,10 +3,26 @@
  * Falls back offline when GROK_API_KEY is missing or the call fails.
  */
 
+function trimName(name) {
+  const s = String(name || "").trim();
+  return s ? s.slice(0, 40) : null;
+}
+
 function fallbackJudge({ answers = [], livingCount } = {}) {
   const living = Math.max(1, Number(livingCount) || answers.length || 1);
-  const solid = answers.filter((a) => String(a?.text ?? "").trim().length >= 20);
+  const ranked = [...answers].map((a) => ({
+    name: trimName(a?.name),
+    len: String(a?.text ?? "").trim().length,
+  }));
+  const solid = ranked.filter((a) => a.len >= 20);
   const helped = solid.length >= Math.ceil(living / 2);
+  ranked.sort((a, b) => b.len - a.len);
+  const mvp = helped ? ranked[0]?.name || null : null;
+  const shortest = [...ranked].sort((a, b) => a.len - b.len)[0];
+  let weakest = shortest && (shortest.len < 20 || ranked.length > 1)
+    ? shortest.name
+    : null;
+  if (weakest && mvp && weakest === mvp) weakest = null;
   return {
     helped,
     pointsDelta: helped ? 1 : 0,
@@ -14,6 +30,8 @@ function fallbackJudge({ answers = [], livingCount } = {}) {
     summary: helped
       ? "The town's answers held. Soft favor to the city."
       : "The crisis answers fell short. Soft against the city.",
+    mvp,
+    weakest,
   };
 }
 
@@ -41,7 +59,10 @@ function normalizeResult(parsed, fallback) {
   }
   const summary =
     String(parsed.summary || "").trim().slice(0, 200) || fallback.summary;
-  return { helped, pointsDelta, slowdown, summary };
+  const mvp = trimName(parsed.mvp) || (helped ? fallback.mvp : null);
+  let weakest = trimName(parsed.weakest) || fallback.weakest;
+  if (weakest && mvp && weakest === mvp) weakest = null;
+  return { helped, pointsDelta, slowdown, summary, mvp, weakest };
 }
 
 /**
@@ -78,8 +99,9 @@ async function judge(input, opts = {}) {
             content:
               "You judge whether a town's crisis answers helped. " +
               "Reply with ONLY JSON: " +
-              '{"helped":boolean,"pointsDelta":0|1|2,"slowdown":"favor"|"against","summary":"one short sentence"}. ' +
-              "Nobody dies. Soft outcome only.",
+              '{"helped":boolean,"pointsDelta":0|1|2,"slowdown":"favor"|"against",' +
+              '"summary":"one short sentence","mvp":"best name or null","weakest":"weakest name or null"}. ' +
+              "mvp/weakest must be exact answer names when possible. Nobody dies. Soft outcome only.",
           },
           {
             role: "user",

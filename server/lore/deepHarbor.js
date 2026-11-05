@@ -21,9 +21,27 @@ const ENTRIES = [
   { name: "Eli Marsh", persona: "Ferry ticket boy who remembers faces." },
 ];
 
+const TALK_PROMPTS = [
+  "Name one person on this pier you trust with a berth key — and why.",
+  "Who at this table is hiding a tell, and what is it?",
+  "Which fog rumor would sink someone before dawn?",
+  "Who should keep the night watch on the wharf, and why them?",
+  "Name the seat you would not leave alone on the foghorn.",
+];
+
+const CRISIS_PROMPTS = [
+  "The channel markers are dark. What do we do before the tide turns?",
+  "Fog seals the harbor mouth. Where do we shelter, and who keeps watch?",
+  "Four rumors on the pier: poisoned catch, missing tug, crooked customs stamp, empty crate. Which two do we act on?",
+  "The lighthouse lamp fails. Who do we send, and with what message?",
+  "A fire starts at the chandlery. What is the first move that saves the harbor?",
+];
+
 module.exports = {
   theme: "deepHarbor",
   themeLabel: "Deep Harbor",
   ENTRIES,
+  TALK_PROMPTS,
+  CRISIS_PROMPTS,
   deal: makeDeal(ENTRIES),
 };

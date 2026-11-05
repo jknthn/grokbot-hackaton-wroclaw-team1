@@ -6,6 +6,7 @@ const sandbox = require("./rules/sandbox");
 const town = require("./rules/town");
 const { createRoom } = require("./room");
 const { startBotPlayer } = require("./players/botPlayer");
+const { startGameMaster } = require("./gm/gameMaster");
 
 const PORT = Number(process.env.PORT || 3000);
 // Local default: localhost (pair with ngrok). Deploy/platforms: 0.0.0.0
@@ -23,21 +24,41 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+const publicDir = path.join(__dirname, "..", "public");
 // Dining-hall UI imports Three as ESM. Serve the package as-is (no bundler).
 app.use(
   "/vendor/three",
   express.static(path.join(__dirname, "..", "node_modules", "three"))
 );
+app.use(express.static(publicDir));
 app.get("/demo", (_req, res) => {
-  res.sendFile(path.join(__dirname, "..", "public", "demo.html"));
+  res.sendFile(path.join(publicDir, "demo.html"));
 });
-app.use(express.static(path.join(__dirname, "..", "public")));
+app.get("/stream", (_req, res) => {
+  res.sendFile(path.join(publicDir, "stream.html"));
+});
 
 const room = createRoom(rules, { joinPin: JOIN_PIN });
 /** @type {Map<string, string>} socket.id → playerId */
 const socketPlayers = new Map();
+/** @type {Set<string>} socket.id — TV / spectator clients */
+const streamSockets = new Set();
 /** @type {Array<{ stop: () => void, player?: { id: string } }>} */
 const botHandles = [];
+/** @type {{ stop: () => void } | null} */
+let gmHandle = null;
+
+function pushStream() {
+  const view = room.streamView();
+  for (const socketId of [...streamSockets]) {
+    const sock = io.sockets.sockets.get(socketId);
+    if (!sock) {
+      streamSockets.delete(socketId);
+      continue;
+    }
+    sock.emit("stream", { view });
+  }
+}
 
 function pushAll() {
   for (const [socketId, playerId] of socketPlayers) {
@@ -46,6 +67,7 @@ function pushAll() {
     const view = room.viewFor(playerId);
     if (view) sock.emit("state", { view });
   }
+  pushStream();
 }
 
 room.onUpdate(pushAll);
@@ -102,13 +124,24 @@ function seedAutoBot() {
 function clearTableSockets() {
   socketPlayers.clear();
   for (const sock of io.sockets.sockets.values()) {
+    if (streamSockets.has(sock.id)) continue;
     sock.emit("room_cleared", {});
   }
+  pushStream();
 }
 
 io.on("connection", (socket) => {
+  socket.on("observe", (_payload, ack) => {
+    streamSockets.add(socket.id);
+    socketPlayers.delete(socket.id);
+    const view = room.streamView();
+    socket.emit("stream", { view });
+    if (typeof ack === "function") ack({ ok: true });
+  });
+
   socket.on("join", (payload = {}, ack) => {
     try {
+      streamSockets.delete(socket.id);
       let player;
       if (USE_SANDBOX) {
         player = room.join({
@@ -233,14 +266,22 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     socketPlayers.delete(socket.id);
+    streamSockets.delete(socket.id);
   });
 });
 
 seedAutoBot();
 
+if (!USE_SANDBOX && process.env.GM_AUTO !== "0") {
+  gmHandle = startGameMaster(room);
+  console.log("[gm] Game Master auto-advance enabled (GM_AUTO=0 to disable)");
+}
+
 server.listen(PORT, HOST, () => {
   console.log("");
   console.log(`  Game kernel listening on http://${HOST}:${PORT}`);
+  console.log(`  Walkthrough demo: http://${HOST}:${PORT}/demo`);
+  console.log(`  TV stream: http://${HOST}:${PORT}/stream`);
   console.log(`  Rules: ${USE_SANDBOX ? "sandbox" : "town"}`);
   console.log(`  JOIN_PIN set (len=${String(JOIN_PIN).length}); always also accepts 4821`);
   if (HOST === "127.0.0.1") {
@@ -253,5 +294,6 @@ server.listen(PORT, HOST, () => {
 
 process.on("SIGINT", () => {
   stopAllBots();
+  if (gmHandle) gmHandle.stop();
   process.exit(0);
 });

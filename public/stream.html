@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>THE CLUB — LIVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/stream.css" />
+  </head>
+  <body class="stream-body phase-lobby">
+    <div class="stream-shell">
+      <header class="stream-top">
+        <div class="stream-brand">
+          <span class="live-pill" aria-hidden="true">● LIVE</span>
+          <strong class="stream-title">THE CLUB</strong>
+          <span id="stream-theme" class="stream-theme muted"></span>
+        </div>
+        <div class="stream-hud">
+          <strong id="stream-phase" class="phase-hud">LOBBY</strong>
+          <span id="stream-points" class="city-points" hidden>CITY PTS: 0</span>
+          <span id="stream-seats" class="muted"></span>
+        </div>
+      </header>
+
+      <nav id="stream-rail" class="stream-rail" aria-label="Phases"></nav>
+
+      <div id="stream-banner" class="now-banner stream-banner">
+        <strong id="stream-action">WAITING</strong>
+        <span id="stream-detail">Open this on the projector. Players join from the main URL.</span>
+      </div>
+
+      <div id="stream-town-focus" class="stream-town-focus" hidden>
+        <span class="stream-town-kicker">TOWN</span>
+        <p id="stream-town-line">—</p>
+      </div>
+
+      <main class="stream-main">
+        <section class="stream-table-wrap">
+          <p id="stream-focus-tag" class="stream-focus-tag" hidden></p>
+          <div id="stream-table" class="table stream-table" aria-label="Seats">
+            <div id="stream-center" class="stream-center">
+              <span id="stream-center-phase">LOBBY</span>
+              <span id="stream-center-sub" class="muted"></span>
+            </div>
+          </div>
+          <div id="stream-window" class="stream-window" hidden>
+            <div class="stream-window-label">SEALED WRITE</div>
+            <p id="stream-window-prompt" class="stream-window-prompt"></p>
+            <div id="stream-window-bar" class="stream-window-bar">
+              <span id="stream-window-fill"></span>
+            </div>
+            <div id="stream-window-count" class="stream-window-count">0/0</div>
+          </div>
+          <div id="stream-vote" class="stream-vote" hidden>
+            <span id="stream-vote-count">VOTES 0/0</span>
+          </div>
+        </section>
+
+        <section class="stream-chat-wrap">
+          <div class="stream-chat-head">
+            <h2 class="stream-chat-label">TOWN RECORD</h2>
+            <span id="stream-chat-meta" class="muted"></span>
+          </div>
+          <div id="stream-chat" class="chat stream-chat"></div>
+        </section>
+      </main>
+
+      <footer class="stream-foot muted">
+        Demo feed · no player controls · kind stays hidden
+      </footer>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/stream.js"></script>
+  </body>
+</html>

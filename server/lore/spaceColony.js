@@ -21,9 +21,27 @@ const ENTRIES = [
   { name: "Tess Marin", persona: "School tutor for kids born off-world." },
 ];
 
+const TALK_PROMPTS = [
+  "Name one crewmate you trust with the airlock codes — and why.",
+  "Who on this deck is hiding a tell, and what is it?",
+  "Which systems rumor would strand us before the next cycle?",
+  "Who should take night EVA watch, and why them?",
+  "Name the seat you would not leave alone in medbay.",
+];
+
+const CRISIS_PROMPTS = [
+  "Life support is dropping 4%. What do we do before the next sleep cycle?",
+  "An airlock seal is failing. Where do we stage, and who holds the door?",
+  "Four rumors on the board: reactor leak, ration theft, rogue drone, fake Earth packet. Which two do we act on?",
+  "Comms to Earth are dark. Who do we send on the relay run, and with what message?",
+  "Fire starts in hydroponics. What is the first move that saves the colony?",
+];
+
 module.exports = {
   theme: "spaceColony",
   themeLabel: "Space Colony",
   ENTRIES,
+  TALK_PROMPTS,
+  CRISIS_PROMPTS,
   deal: makeDeal(ENTRIES),
 };

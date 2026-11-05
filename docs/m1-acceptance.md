@@ -21,7 +21,7 @@ Superseded, do not implement: solo strike tokens, “no private bot chat,” rev
 - [ ] Night: living bots on an anonymous `Shadow A/B/…` channel, labels reshuffled each night; shadows are not told which seat the others are
 - [ ] Shadows talk, then each votes a living human or passes; majority of living shadows decides; humans-only targets; tie or no majority → quiet night
 - [ ] Humans see night as wait, then vanish or quiet; a point-spend blocks the kill and reads as quiet
-- [ ] Team win checks after vote and night (humans: 0 living bots; bots: living humans ≤ living bots; dead bots share a bot win)
+- [ ] Team win checks after vote, night, and crisis points (parity tables: humans wipe bots / bots at parity; underdog tables: humans survive N nights or hit point goal or wipe bots / bots wipe humans; dead bots share a bot win)
 - [ ] UI shows phase, alive/dead, lore names, talk composer, crisis submit + counter, vote-by-seat, human night wait, city-point spend
 - [ ] `npm start` still serves; demo via URL + `JOIN_PIN`
 - [ ] Docs: locked loop linked from README and STATUS; plan banner notes what this supersedes

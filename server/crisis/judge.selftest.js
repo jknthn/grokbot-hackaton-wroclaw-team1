@@ -19,6 +19,8 @@ const strong = fallbackJudge({
 assert.strictEqual(strong.helped, true);
 assert.strictEqual(strong.pointsDelta, 1);
 assert.strictEqual(strong.slowdown, "favor");
+assert.ok(strong.mvp === "A" || strong.mvp === "B");
+assert.ok(weak.weakest === "A");
 
 assert.deepStrictEqual(parseJudgeJson('noise {"helped":true,"pointsDelta":2,"slowdown":"favor","summary":"ok"} tail'), {
   helped: true,

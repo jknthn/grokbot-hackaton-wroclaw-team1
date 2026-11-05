@@ -70,7 +70,9 @@
       <header class="bar">
         <div>
           <strong id="phase-label" class="phase-hud">LOBBY</strong>
+          <span id="side-label" class="side-label" hidden></span>
           <span id="city-points" class="city-points" hidden>CITY PTS: 0</span>
+          <span id="win-goal" class="win-goal muted" hidden></span>
           <span id="you-label" class="muted"></span>
         </div>
         <div id="host-controls" class="host" hidden>
@@ -85,18 +87,34 @@
             <button type="button" id="reset-room-btn">CLEAR TABLE</button>
           </div>
           <p id="lobby-status" class="host-hint" hidden></p>
-          <p id="host-hint" class="host-hint">Click a seat to kill / revive</p>
+          <p id="host-hint" class="host-hint">Click a person at the table to vote or (host) kill / revive</p>
         </div>
       </header>
 
+      <div id="now-banner" class="now-banner" aria-live="polite">
+        <strong id="now-action">LOBBY</strong>
+        <span id="now-detail">Use NEXT STEP above for the happy path.</span>
+      </div>
+
       <div class="stage-ui">
+        <p id="night-veil" class="night-veil" hidden>SHADOWS MOVE</p>
         <p class="hint">Use <strong>NEXT STEP</strong> above for the happy path. Click guests in 3D during vote.</p>
         <section id="chat-wrap" class="chat-wrap">
           <div id="window-banner" class="window-banner" hidden>
             <span id="window-status">Blind write open</span>
             <span id="window-count" class="muted"></span>
           </div>
+          <div id="vote-banner" class="window-banner vote-banner" hidden>
+            <span id="vote-status">VOTE — click a living seat</span>
+            <span id="vote-count" class="muted"></span>
+          </div>
+          <div id="shadow-banner" class="window-banner shadow-banner" hidden>
+            <span id="shadow-status">SHADOW CHANNEL</span>
+            <span id="shadow-count" class="muted"></span>
+          </div>
           <div id="chat" class="chat"></div>
+          <div id="shadow-chat" class="chat shadow-chat" hidden></div>
+          <button id="block-night-btn" type="button" class="secondary" hidden>SPEND 1 PT TO BLOCK STRIKE</button>
           <form id="say-form" class="say">
             <input id="say-input" maxlength="280" placeholder="Be careful what you put on the record…" autocomplete="off" />
             <button type="submit">SAY</button>

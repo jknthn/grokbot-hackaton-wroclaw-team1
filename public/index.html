@@ -30,11 +30,12 @@
     <div id="join-screen" class="panel join">
       <p class="eyebrow">TOWN HALL · MEMBERS ONLY</p>
       <h1>THE CLUB</h1>
-      <p class="sub">One join seats you and your shadow. Host ADD BOT packs a 1-human table. Lore names deal at START.</p>
+      <p class="sub">Join (you + shadow). Host ADD BOT to pack bots. Press READY when packed — the Game Master picks a theme and runs the round.</p>
       <label>Name <input id="name" maxlength="24" placeholder="TONY" autocomplete="nickname" /></label>
       <label>Door code <input id="pin" maxlength="8" placeholder="4821" value="4821" autocomplete="off" /></label>
       <label class="check"><input type="checkbox" id="want-host" /> I’m running this sit-down (host)</label>
       <button id="join-btn" type="button">COME IN (YOU + SHADOW)</button>
+      <p class="sub"><a href="/stream">TV STREAM</a> — projector / demo feed (no seat)</p>
       <p id="join-error" class="error" hidden></p>
     </div>
 
@@ -42,7 +43,9 @@
       <header class="bar">
         <div>
           <strong id="phase-label" class="phase-hud">LOBBY</strong>
+          <span id="side-label" class="side-label" hidden></span>
           <span id="city-points" class="city-points" hidden>CITY PTS: 0</span>
+          <span id="win-goal" class="win-goal muted" hidden></span>
           <span id="you-label" class="muted"></span>
         </div>
         <div id="host-controls" class="host" hidden>
@@ -57,18 +60,34 @@
             <button type="button" id="reset-room-btn">CLEAR TABLE</button>
           </div>
           <p id="lobby-status" class="host-hint" hidden></p>
-          <p id="host-hint" class="host-hint">Click a seat to kill / revive</p>
+          <p id="host-hint" class="host-hint">Click a person at the table to vote or (host) kill / revive</p>
         </div>
       </header>
 
+      <div id="now-banner" class="now-banner" aria-live="polite">
+        <strong id="now-action">LOBBY</strong>
+        <span id="now-detail">Host ADD BOT, then press READY.</span>
+      </div>
+
       <div class="stage-ui">
-        <p class="hint">Click a person at the table. Lobby: join (you + shadow), host <em>ADD BOT</em> to pack the table, <em>START</em>, then talk → crisis windows.</p>
+        <p id="night-veil" class="night-veil" hidden>SHADOWS MOVE</p>
+        <p class="hint">Follow the gold banner. Click seats in the hall. Flow: READY → day talk → crisis → vote → night → day.</p>
         <section id="chat-wrap" class="chat-wrap">
           <div id="window-banner" class="window-banner" hidden>
             <span id="window-status">Blind write open</span>
             <span id="window-count" class="muted"></span>
           </div>
+          <div id="vote-banner" class="window-banner vote-banner" hidden>
+            <span id="vote-status">VOTE — click a living seat</span>
+            <span id="vote-count" class="muted"></span>
+          </div>
+          <div id="shadow-banner" class="window-banner shadow-banner" hidden>
+            <span id="shadow-status">SHADOW CHANNEL</span>
+            <span id="shadow-count" class="muted"></span>
+          </div>
           <div id="chat" class="chat"></div>
+          <div id="shadow-chat" class="chat shadow-chat" hidden></div>
+          <button id="block-night-btn" type="button" class="secondary" hidden>SPEND 1 PT TO BLOCK STRIKE</button>
           <form id="say-form" class="say">
             <input id="say-input" maxlength="280" placeholder="Be careful what you put on the record…" autocomplete="off" />
             <button type="submit">SAY</button>
