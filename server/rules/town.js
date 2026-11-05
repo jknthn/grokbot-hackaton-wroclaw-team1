@@ -137,19 +137,29 @@ function setNightStage(room, stage) {
 
 function tallyShadowVotes(room) {
   const shadows = livingBots(room);
+  const humans = livingHumans(room);
   const votes = ensureShadowVotes(room);
-  const humanSeats = new Set(livingHumans(room).map((h) => h.seatId));
+  const humanSeats = new Set(humans.map((h) => h.seatId));
   const tallies = new Map();
   let cast = 0;
+  let passes = 0;
   for (const bot of shadows) {
     if (!votes.has(bot.seatId)) continue;
     cast += 1;
     const target = votes.get(bot.seatId);
-    if (target == null) continue; // pass
+    if (target == null) {
+      passes += 1;
+      continue;
+    }
     if (!humanSeats.has(target)) continue;
     tallies.set(target, (tallies.get(target) || 0) + 1);
   }
-  const need = Math.floor(shadows.length / 2) + 1;
+  // Demo balance: with a single living human, require unanimous shadow strikes
+  // (any PASS or split → quiet). Otherwise normal majority of living shadows.
+  const need =
+    humans.length <= 1
+      ? Math.max(1, shadows.length)
+      : Math.floor(shadows.length / 2) + 1;
   let bestSeat = null;
   let bestCount = 0;
   for (const [seatId, count] of tallies.entries()) {
@@ -160,10 +170,10 @@ function tallyShadowVotes(room) {
   }
   if (bestSeat == null || bestCount < need) {
     room.meta.night.pendingTargetSeat = null;
-    return { target: null, bestCount, need, cast };
+    return { target: null, bestCount, need, cast, passes, unanimous: humans.length <= 1 };
   }
   room.meta.night.pendingTargetSeat = bestSeat;
-  return { target: bestSeat, bestCount, need, cast };
+  return { target: bestSeat, bestCount, need, cast, passes, unanimous: humans.length <= 1 };
 }
 
 function resolveNight(room) {
@@ -586,6 +596,12 @@ const town = {
     });
     room.meta.cityPoints = (Number(room.meta.cityPoints) || 0) + (result.pointsDelta || 0);
     room.meta.slowdown = result.slowdown;
+    // Demo balance: always leave at least 1 point so a night block is possible.
+    let watchFund = false;
+    if ((Number(room.meta.cityPoints) || 0) < 1 && n > 0) {
+      room.meta.cityPoints = 1;
+      watchFund = true;
+    }
     const pts = room.meta.cityPoints;
     const slow =
       result.slowdown === "favor"
@@ -593,12 +609,13 @@ const town = {
         : result.slowdown === "against"
           ? " Tempo leans against the city."
           : "";
+    const fund = watchFund ? " Watch fund grants 1 city point." : "";
     pushTown(
       room,
-      `Crisis judged (${n} answers). ${result.summary} City points: ${pts}.${slow} Vote is next.`,
+      `Crisis judged (${n} answers). ${result.summary} City points: ${pts}.${slow}${fund} Vote is next.`,
       {
         action: "CRISIS RESOLVED",
-        detail: `City points ${pts}. Get ready to vote.`,
+        detail: `City points ${pts}. You can spend 1 at night to block a strike.`,
       }
     );
   },
@@ -753,25 +770,27 @@ const town = {
       `You are a bot in a town game. Your public name is ${player.name}. ` +
       `Persona: ${persona}. ` +
       (flavor ? `${flavor} ` : "") +
-      "Your team (all bots) wins together, including bots who die. Thin the humans. " +
+      "Your team (all bots) wins together, including bots who die. Blend in by day. " +
       "Never confess you are a bot or an AI. Do not reveal who else might be a bot.";
     if (view?.phase === "night" && view?.meta?.nightStage === "talk") {
       return (
         base +
         ` Night shadow channel: you are ${label || "a shadow"} tonight (label reshuffles). ` +
-        "Other shadows do not share stable identities. Cooperate in ONE short line. Never use your lore name here."
+        "Other shadows do not share stable identities. Cooperate in ONE short line. Never use your lore name here. " +
+        "If the table is thin on humans, prefer caution over a loud strike."
       );
     }
     if (view?.phase === "night" && view?.meta?.nightStage === "vote") {
-      const humans = (view.seats || [])
-        .filter((s) => s.alive)
-        .map((s) => `#${s.seatId} ${s.name}`)
-        .join(", ");
+      const targets = view?.meta?.humanTargets || [];
+      const list = targets.map((h) => `#${h.seatId} ${h.name}`).join(", ");
+      const caution =
+        targets.length <= 1
+          ? "Only one human target exists — prefer PASS unless the shadow chat strongly agrees. Unanimous strike is required."
+          : "Strike only with clear shadow agreement; otherwise PASS.";
       return (
         base +
-        ` You are ${label || "a shadow"}. Vote to strike ONE living human seat, or pass. ` +
-        "Only humans are valid targets. You are not told which seats are bots. " +
-        `Living seats (pick a human by suspicion): ${humans || "none"}. Reply with seat number or PASS.`
+        ` You are ${label || "a shadow"}. Vote to strike ONE living human seat, or PASS. ` +
+        `${caution} Valid human targets: ${list || "none"}. Reply with seat number or PASS.`
       );
     }
     if (view?.phase === "vote") {
@@ -781,8 +800,8 @@ const town = {
         .join(", ");
       return (
         base +
-        " Vote phase: eliminate ONE living seat based on what they said in public — suspicion from words, not from guessing who is human. " +
-        "Do not always pick the same seat. Spread suspicion. " +
+        " Day vote: pick ONE living seat from suspicious public speech only. " +
+        "Do not try to detect who is human vs bot. Do not pile onto the same seat every round. " +
         `Candidates: ${seats || "none"}. Reply with only the seat number.`
       );
     }

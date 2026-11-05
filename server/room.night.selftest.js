@@ -40,11 +40,26 @@ assert.ok(voteView.meta.humanTargets.length >= 1);
 assert.ok(voteView.allowed.act.includes("shadowVote"));
 
 const humanSeat = human.seatId;
+
+// 1-human demo balance: one PASS → no strike (unanimous required)
+room.handleAct(bots[0].id, "shadowVote", { seatId: humanSeat });
+room.handleAct(bots[1].id, "shadowVote", { seatId: humanSeat });
+if (bots[2]) room.handleAct(bots[2].id, "shadowVote", { pass: true });
+else {
+  // only 2 bots from pair+1 extra? we added Extra and Extra2 → pair bot + 2 = 3
+}
+let tallied = room.tallyShadowVotes();
+assert.strictEqual(tallied.target, null);
+assert.ok(tallied.unanimous);
+
+// Reset votes: unanimous strike succeeds
+room.setNightStage("vote");
 for (const b of bots) {
   room.handleAct(b.id, "shadowVote", { seatId: humanSeat });
 }
-const tallied = room.tallyShadowVotes();
+tallied = room.tallyShadowVotes();
 assert.strictEqual(tallied.target, humanSeat);
+assert.strictEqual(tallied.need, bots.length);
 
 room.setNightStage("defend");
 assert.ok(room.viewFor(human.id).meta.canBlockNight);
@@ -58,7 +73,7 @@ assert.ok(resolved.blocked);
 assert.ok(human.alive);
 assert.ok(room.channels.public.some((m) => /Quiet night/i.test(m.text)));
 
-// Second night: kill without block
+// Second night: unanimous kill without block
 room.systemSetPhase("talk");
 room.systemSetPhase("night");
 const bots2 = [...room.players.values()].filter((p) => p.kind === "bot" && p.alive);

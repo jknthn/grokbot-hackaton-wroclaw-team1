@@ -149,8 +149,14 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
     function randomHuman() {
       return humans[Math.floor(Math.random() * humans.length)].seatId;
     }
+    // Demo balance: with one human target, most shadows PASS so unanimous strike is rare.
+    const lonelyHuman = humans.length <= 1;
     const key = process.env.GROK_API_KEY;
-    if (!key) return { seatId: randomHuman() };
+    if (!key) {
+      if (lonelyHuman && Math.random() < 0.7) return { pass: true };
+      if (!lonelyHuman && Math.random() < 0.25) return { pass: true };
+      return { seatId: randomHuman() };
+    }
     try {
       const prompt = view.botPrompt || "Vote a human seat or PASS.";
       const shadow = (view.channels?.shadow || [])
@@ -173,11 +179,14 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
               content:
                 (shadow ? `Shadow chat:\n${shadow}\n\n` : "") +
                 `Valid human targets: ${list}\n` +
+                (lonelyHuman
+                  ? "Only one human — lean PASS unless shadows clearly agree.\n"
+                  : "") +
                 "Reply with ONLY a seat number or the word PASS.",
             },
           ],
           max_tokens: 20,
-          temperature: 0.6,
+          temperature: 0.7,
         }),
       });
       if (!res.ok) throw new Error(`grok http ${res.status}`);
@@ -187,9 +196,10 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
       const match = content.match(/-?\d+/);
       const seatId = match ? Number(match[0]) : NaN;
       if (humans.some((h) => h.seatId === seatId)) return { seatId };
-      return { seatId: randomHuman() };
+      return lonelyHuman ? { pass: true } : { seatId: randomHuman() };
     } catch (err) {
       console.warn("[bot] shadow vote fallback:", err.message);
+      if (lonelyHuman && Math.random() < 0.7) return { pass: true };
       return { seatId: randomHuman() };
     }
   }
