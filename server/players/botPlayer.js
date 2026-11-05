@@ -17,14 +17,31 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
 
   function intervalForBot() {
     const p = personality();
-    if (p?.speakDelayMs) return Math.max(2500, Number(intervalMs) + (p.speakDelayMs % 3000));
+    if (p?.speakDelayMs) {
+      return Math.max(2500, Number(intervalMs) + (p.speakDelayMs % 3000));
+    }
     return intervalMs;
   }
 
-  async function maybeSpeak() {
+  async function maybeAct() {
     if (busy) return;
     const view = room.viewFor(bot.id);
     if (!view || !view.you.alive) return;
+
+    if (view.phase === "vote" && view.allowed.act.includes("vote")) {
+      busy = true;
+      try {
+        const target = await pickVoteTarget(view);
+        if (target != null) {
+          room.handleAct(bot.id, "vote", { seatId: target });
+        }
+      } catch (err) {
+        console.warn("[bot]", bot.name, err.message);
+      } finally {
+        busy = false;
+      }
+      return;
+    }
 
     if (view.window?.open) {
       if (view.window.youSubmitted) return;
@@ -58,9 +75,89 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
     }
   }
 
+  /** Full visible public transcript for the model (trim oldest if huge). */
+  function formatTranscript(view, maxChars = 24000) {
+    const msgs = view.channels?.public || [];
+    const lines = msgs.map((m) => {
+      const seat =
+        typeof m.fromSeat === "number" && m.fromSeat >= 0
+          ? `#${m.fromSeat} `
+          : "";
+      return `${seat}${m.name}: ${m.text}`;
+    });
+    let text = lines.join("\n");
+    if (text.length > maxChars) {
+      text = text.slice(text.length - maxChars);
+      const cut = text.indexOf("\n");
+      if (cut > 0) text = text.slice(cut + 1);
+      text = `[…earlier lines omitted…]\n${text}`;
+    }
+    return text;
+  }
+
+  function livingSeatList(view) {
+    return (view.seats || [])
+      .filter((s) => s.alive)
+      .map((s) => `#${s.seatId} ${s.name}`)
+      .join(", ");
+  }
+
+  async function pickVoteTarget(view) {
+    const candidates = (view.seats || []).filter(
+      (s) => s.alive && s.seatId !== view.you.seatId
+    );
+    if (!candidates.length) return null;
+
+    const key = process.env.GROK_API_KEY;
+    if (!key) {
+      return candidates[lineIndex++ % candidates.length].seatId;
+    }
+    try {
+      const prompt = view.botPrompt || `Vote for a seat.`;
+      const history = formatTranscript(view);
+      const seats = livingSeatList(view);
+      const res = await fetch("https://api.x.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: process.env.GROK_MODEL || "grok-2-latest",
+          messages: [
+            { role: "system", content: prompt },
+            {
+              role: "user",
+              content:
+                (history
+                  ? `Full town transcript so far:\n${history}\n\n`
+                  : "No public transcript yet.\n\n") +
+                `Living seats: ${seats || "(none)"}\n` +
+                "Reply with ONLY the seat number integer to vote out.",
+            },
+          ],
+          max_tokens: 20,
+          temperature: 0.4,
+        }),
+      });
+      if (!res.ok) throw new Error(`grok http ${res.status}`);
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content || "";
+      const match = content.match(/-?\d+/);
+      const seatId = match ? Number(match[0]) : NaN;
+      if (candidates.some((c) => c.seatId === seatId)) return seatId;
+      return candidates[0].seatId;
+    } catch (err) {
+      console.warn("[bot] vote fallback:", err.message);
+      return candidates[lineIndex++ % candidates.length].seatId;
+    }
+  }
+
   function offlineLine(maxLen) {
     const p = personality();
-    const line = p ? cannedLine(p, lineIndex) : cannedLines[lineIndex % cannedLines.length];
+    const line = p
+      ? cannedLine(p, lineIndex)
+      : cannedLines[lineIndex % cannedLines.length];
     lineIndex += 1;
     return String(line).slice(0, maxLen);
   }
@@ -73,10 +170,17 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
     }
     try {
       const prompt = view.botPrompt || `You are ${bot.name}. Say something short.`;
-      const history = (view.channels.public || [])
-        .slice(-12)
-        .map((m) => `${m.name}: ${m.text}`)
-        .join("\n");
+      const history = formatTranscript(view);
+      const seats = livingSeatList(view);
+      const phase = view.phase || "talk";
+      const metaBits = [];
+      if (view.meta?.cityPoints != null) metaBits.push(`cityPoints=${view.meta.cityPoints}`);
+      if (view.meta?.crisisPrompt) metaBits.push(`crisis=${view.meta.crisisPrompt}`);
+      if (view.meta?.talkPrompt) metaBits.push(`dayPrompt=${view.meta.talkPrompt}`);
+      const contextHeader =
+        `Phase: ${phase}. You are seat #${view.you.seatId} (${view.you.name}). ` +
+        `Living seats: ${seats || "(none)"}.` +
+        (metaBits.length ? ` ${metaBits.join(" · ")}.` : "");
       const blind = Boolean(view.window?.open);
       const temp = Number(personality()?.temperature);
       const temperature = Number.isFinite(temp) ? temp : 0.9;
@@ -94,11 +198,11 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
               role: "user",
               content: blind
                 ? history
-                  ? `Earlier transcript (others are writing blind now):\n${history}\n\nWrite your one blind line only.`
-                  : "Write one short blind line for the table. Nobody else can see it yet."
+                  ? `${contextHeader}\n\nFull town transcript so far (others are writing blind now):\n${history}\n\nWrite your one blind line only.`
+                  : `${contextHeader}\n\nNo transcript yet. Write one short blind line for the table.`
                 : history
-                  ? `Recent chat:\n${history}\n\nWrite your next message only.`
-                  : "The chat is empty. Say a short hello to the table.",
+                  ? `${contextHeader}\n\nFull town transcript so far:\n${history}\n\nWrite your next message only.`
+                  : `${contextHeader}\n\nThe chat is empty. Say a short hello to the table.`,
             },
           ],
           max_tokens: 60,
@@ -116,9 +220,9 @@ function startBotPlayer(room, { name = "Grok-1", intervalMs = 8000, existingPlay
     }
   }
 
-  const timer = setInterval(maybeSpeak, intervalForBot());
+  const timer = setInterval(maybeAct, intervalForBot());
   const kickDelay = personality()?.speakDelayMs || 1500;
-  const kick = setTimeout(maybeSpeak, kickDelay);
+  const kick = setTimeout(maybeAct, kickDelay);
 
   return {
     player: bot,
