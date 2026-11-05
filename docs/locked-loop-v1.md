@@ -11,10 +11,12 @@ Mixed humans + solo Grok bots in one town hall. Bots know they are bots. Talk �
 | Decision | Choice |
 |----------|--------|
 | Communication | Town hall / public channel only — no DMs, no bot–bot private chat |
+| Day talk | Simultaneous turns: private write, then one reveal. Free-scroll chat is not the scoring mode |
+| Message cap | ~120–160 characters; 1 message per living seat per talk window |
 | Bot knowledge | Bots know they are bots; secret goal = survive + thin humans; never confess |
 | Bot collusion | Solo — each bot acts alone |
 | Media | Text first; voice later |
-| UI shape | Seat table + public chat (already in M0); no map / movement |
+| UI shape | Seat table + public transcript (already in M0); no map / movement; no typing indicators during a writing window |
 
 ## Win conditions
 
@@ -35,15 +37,21 @@ Check after crisis resolve, after vote resolve, and after night resolve.
 
 ### 1. Day — talk
 
+Scoring talk is turn-based simultaneous reveal. Free-scroll chat is not the competitive talk mode.
+
 - Timer (e.g. 3 minutes) or host advance.
-- Free text on the public channel.
-- Bots reply in character from persona + public history only.
-- On end: lock chat for crisis.
+- Each living seat writes **privately** during the window. The room reveals every submitted message at once when the window ends.
+- No typing indicators. No live free-scroll of other seats’ lines while the window is open.
+- Hard rules: max ~120–160 characters per message; **1 message per seat per talk window**.
+- Optional (not required for v1): the window can be a forced prompt, e.g. “name one ally and why, ≤12 words.”
+- Bots reply in character from persona + the public transcript already revealed (not from drafts still hidden this window).
+- On end: lock the window and move to crisis.
 
 ### 2. Day — crisis
 
 - Server posts one crisis prompt to town hall.
-- Short window (e.g. 60–90s). Each living seat submits **one** answer (posted publicly or via submit that appears as them).
+- Short window (e.g. 60–90s). Each living seat submits **one** answer.
+- Same anti-tell pattern as day talk: answers stay private until the window ends, then the room reveals them together. No typing indicators and no live preview of other seats’ answers.
 - **Success:** clear majority answer → nobody dies from crisis.
 - **Fail:** tie / no majority / timeout → remove **one random living human**. Announce casualty; **role stays hidden**.
 - Win check.
