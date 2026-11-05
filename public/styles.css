@@ -30,13 +30,44 @@ body {
   line-height: 1.25;
   background-color: var(--bg);
   background-image:
-    /* sodium streetlight (top) */
-    radial-gradient(ellipse 90% 45% at 70% -10%, rgba(201, 162, 39, 0.16), transparent 55%),
+    var(--phase-wash, radial-gradient(ellipse 90% 45% at 70% -10%, rgba(201, 162, 39, 0.16), transparent 55%)),
     /* soft vignette — keep bottom clear for skyline */
     radial-gradient(ellipse 80% 55% at 50% 30%, transparent 50%, rgba(7, 5, 4, 0.35) 100%),
-    linear-gradient(165deg, #1a1412 0%, #0f0c0a 50%, #0a0806 100%);
+    var(--phase-base, linear-gradient(165deg, #1a1412 0%, #0f0c0a 50%, #0a0806 100%));
   background-repeat: no-repeat;
   background-attachment: fixed;
+  transition: background-color 0.6s ease;
+}
+
+/* Phase stage lighting */
+body.phase-lobby {
+  --phase-wash: radial-gradient(ellipse 90% 50% at 50% -5%, rgba(154, 135, 112, 0.18), transparent 55%);
+  --phase-base: linear-gradient(165deg, #181410 0%, #0f0c0a 55%, #0a0806 100%);
+}
+
+body.phase-talk {
+  --phase-wash: radial-gradient(ellipse 95% 55% at 60% -8%, rgba(232, 196, 120, 0.28), transparent 58%);
+  --phase-base: linear-gradient(165deg, #241810 0%, #14100c 50%, #0c0907 100%);
+}
+
+body.phase-crisis {
+  --phase-wash: radial-gradient(ellipse 90% 50% at 50% 0%, rgba(220, 140, 40, 0.32), transparent 55%);
+  --phase-base: linear-gradient(165deg, #2a1808 0%, #160e08 55%, #0a0604 100%);
+}
+
+body.phase-vote {
+  --phase-wash: radial-gradient(ellipse 85% 50% at 50% -5%, rgba(180, 40, 50, 0.34), transparent 55%);
+  --phase-base: linear-gradient(165deg, #2a1014 0%, #14080a 50%, #0a0406 100%);
+}
+
+body.phase-night {
+  --phase-wash: radial-gradient(ellipse 90% 55% at 40% -10%, rgba(60, 90, 160, 0.28), transparent 58%);
+  --phase-base: linear-gradient(165deg, #0c1424 0%, #080c14 50%, #04060a 100%);
+}
+
+body.phase-ended {
+  --phase-wash: radial-gradient(ellipse 80% 45% at 50% 0%, rgba(201, 162, 39, 0.22), transparent 55%);
+  --phase-base: linear-gradient(165deg, #1c1810 0%, #0f0c0a 55%, #080604 100%);
 }
 
 /* Dedicated skyline layer so panels never hide the city by accident */

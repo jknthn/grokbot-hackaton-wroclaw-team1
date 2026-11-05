@@ -307,6 +307,10 @@
       phaseLabel.classList.add("is-live");
     }
     lastPhase = view.phase;
+    document.body.classList.forEach((c) => {
+      if (c.startsWith("phase-")) document.body.classList.remove(c);
+    });
+    document.body.classList.add(`phase-${String(view.phase || "lobby").toLowerCase()}`);
     const deadTag = view.you.alive ? "" : " · DEAD";
     youLabel.textContent = `${view.you.name} · #${view.you.seatId}${view.you.host ? " · HOST" : ""}${deadTag}`;
 
