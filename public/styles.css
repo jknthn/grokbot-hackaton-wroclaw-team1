@@ -579,6 +579,24 @@ button:disabled {
   display: none;
 }
 
+.seat .evidence {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  text-transform: lowercase;
+  max-width: 66px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seat.dead .evidence {
+  display: none;
+}
+
 .hint {
   text-align: center;
   color: var(--muted);

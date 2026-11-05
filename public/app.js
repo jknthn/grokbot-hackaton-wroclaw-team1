@@ -52,7 +52,42 @@
   let prevAlive = new Map();
   /** @type {Set<number>} */
   let vanishSeats = new Set();
+  /** @type {Map<number, string>} */
+  let evidenceChips = new Map();
   let lastPublicLen = 0;
+
+  function evidenceFromText(text, seats) {
+    const t = String(text || "");
+    const lower = t.toLowerCase();
+    const named = seats.find(
+      (s) =>
+        s.name &&
+        t.toLowerCase().includes(String(s.name).toLowerCase().split(/\s+/)[0])
+    );
+    if (named) return `named ${shortName(named.name)}`;
+    if (/\b(liar|suspicious|hiding|guilty|shadow|fake)\b/i.test(lower)) {
+      return "accused";
+    }
+    if (/\b(trust|ally|with me|innocent|solid)\b/i.test(lower)) return "allied";
+    if (/\b(maybe|perhaps|unsure|think|guess|might)\b/i.test(lower)) {
+      return "hedged";
+    }
+    if (t.trim().length >= 40) return "long take";
+    if (t.trim().length > 0) return "on record";
+    return "";
+  }
+
+  function refreshEvidence(msgs, seats) {
+    // Use the latest attributed public lines (skip Town).
+    const recent = [...msgs].reverse().filter((m) => m.fromSeat >= 0).slice(0, 12);
+    const next = new Map();
+    for (const m of recent) {
+      if (next.has(m.fromSeat)) continue;
+      const chip = evidenceFromText(m.text, seats);
+      if (chip) next.set(m.fromSeat, chip);
+    }
+    if (next.size) evidenceChips = next;
+  }
 
   function showError(el, msg) {
     if (!msg) {
@@ -409,6 +444,19 @@
           }
         });
       }
+      if (
+        newest &&
+        newest.fromSeat >= 0 &&
+        (view.phase === "talk" ||
+          view.phase === "crisis" ||
+          view.phase === "vote" ||
+          /Reveal:|Crisis judged/i.test(newest.text || ""))
+      ) {
+        refreshEvidence(msgs, view.seats);
+      }
+      // Batch reveals share one timestamp — refresh when several player lines land.
+      const added = msgs.slice(lastPublicLen).filter((m) => m.fromSeat >= 0);
+      if (added.length >= 2) refreshEvidence(msgs, view.seats);
     }
     lastPublicLen = msgs.length;
     view.seats.forEach((s) => {
@@ -441,8 +489,17 @@
         seat.kind != null
           ? `<span class="kind">${escapeHtml(seat.kind)}</span>`
           : "";
-      el.innerHTML = `<span>${escapeHtml(shortName(seat.name))}</span>${kindHtml}`;
-      el.title = seat.alive ? seat.name : `${seat.name} (dead)`;
+      const chip = evidenceChips.get(seat.seatId);
+      const chipHtml =
+        chip && seat.alive
+          ? `<span class="evidence">${escapeHtml(chip)}</span>`
+          : "";
+      el.innerHTML = `<span>${escapeHtml(shortName(seat.name))}</span>${kindHtml}${chipHtml}`;
+      el.title = seat.alive
+        ? chip
+          ? `${seat.name} · ${chip}`
+          : seat.name
+        : `${seat.name} (dead)`;
 
       if (canVote && seat.alive) {
         el.style.cursor = "pointer";
