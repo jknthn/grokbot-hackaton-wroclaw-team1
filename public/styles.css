@@ -30,30 +30,30 @@ body {
   line-height: 1.25;
   background-color: var(--bg);
   background-image:
-    /* sodium streetlight */
-    radial-gradient(ellipse 90% 50% at 70% -10%, rgba(201, 162, 39, 0.14), transparent 50%),
-    /* club neon bleed */
-    radial-gradient(ellipse 40% 30% at 8% 85%, rgba(139, 30, 45, 0.16), transparent 55%),
-    /* night wash over skyline */
-    linear-gradient(180deg, rgba(15, 12, 10, 0.15) 0%, transparent 42%, rgba(10, 8, 6, 0.35) 70%, rgba(10, 8, 6, 0.75) 100%),
-    /* pixel NYC skyline */
-    url("/assets/nyc-skyline.svg"),
-    linear-gradient(165deg, #1a1412 0%, #0f0c0a 45%, #0a0806 100%);
-  background-repeat: no-repeat, no-repeat, no-repeat, repeat-x, no-repeat;
-  background-position:
-    center top,
-    left bottom,
-    center center,
-    center bottom,
-    center center;
-  background-size:
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    min(960px, 140vw) auto,
-    100% 100%;
+    /* sodium streetlight (top) */
+    radial-gradient(ellipse 90% 45% at 70% -10%, rgba(201, 162, 39, 0.16), transparent 55%),
+    /* soft vignette — keep bottom clear for skyline */
+    radial-gradient(ellipse 80% 55% at 50% 30%, transparent 50%, rgba(7, 5, 4, 0.35) 100%),
+    linear-gradient(165deg, #1a1412 0%, #0f0c0a 50%, #0a0806 100%);
+  background-repeat: no-repeat;
   background-attachment: fixed;
+}
+
+/* Dedicated skyline layer so panels never hide the city by accident */
+body::after {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: min(42vh, 280px);
+  z-index: 0;
+  background: url("/assets/nyc-skyline.svg") center bottom / auto 100% repeat-x;
   image-rendering: pixelated;
+  opacity: 0.95;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 28%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 28%, #000 100%);
 }
 
 body::before {
@@ -62,8 +62,7 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: 0;
-  background:
-    radial-gradient(ellipse 70% 50% at 50% 40%, transparent 40%, rgba(7, 5, 4, 0.55) 100%);
+  background: radial-gradient(ellipse 40% 30% at 8% 90%, rgba(139, 30, 45, 0.14), transparent 55%);
 }
 
 .panel,
@@ -196,6 +195,20 @@ button:disabled {
   box-shadow: none;
 }
 
+.host {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.host-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.15rem;
+}
+
 .host button {
   background: #2a1f18;
   color: var(--ink);
@@ -204,6 +217,43 @@ button:disabled {
   padding: 0.45rem 0.55rem;
   font-size: 0.42rem;
   box-shadow: 3px 3px 0 var(--shadow);
+}
+
+.host button.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.host-hint {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.window-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 0.42rem;
+  letter-spacing: 0.06em;
+  color: #d4a0a8;
+}
+
+.your-draft {
+  margin: 0.45rem 0 0;
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+
+.seat.dead {
+  opacity: 0.4;
+  filter: grayscale(0.7);
+}
+
+.seat.selected {
+  border-color: var(--neon);
 }
 
 .bar {
