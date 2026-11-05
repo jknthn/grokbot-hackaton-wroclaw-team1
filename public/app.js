@@ -20,7 +20,10 @@
   const resetGameBtn = document.getElementById("reset-game-btn");
   const resetRoomBtn = document.getElementById("reset-room-btn");
   const lobbyStatus = document.getElementById("lobby-status");
-  const table = document.getElementById("table");
+  const canvas = document.getElementById("scene");
+  const fallbackEl = document.getElementById("webgl-fallback");
+  const fallbackMsg = document.getElementById("webgl-fallback-msg");
+  const seatFallback = document.getElementById("seat-fallback");
   const chatWrap = document.getElementById("chat-wrap");
   const chat = document.getElementById("chat");
   const sayForm = document.getElementById("say-form");
@@ -37,6 +40,18 @@
   let lastPhase = null;
   let selectedSeatId = null;
   let resumeAttempted = false;
+  let sceneState = "loading";
+  let sceneApi = {
+    available: false,
+    sync() {},
+    debug() {
+      return { available: false, seatCount: 0, seats: [] };
+    },
+    projectSeat() {
+      return null;
+    },
+    destroy() {},
+  };
 
   function showError(el, msg) {
     if (!msg) {
@@ -86,6 +101,7 @@
     joinScreen.hidden = false;
     showError(joinError, message || "");
     showError(gameError, "");
+    syncScene();
   }
 
   function tryResume() {
@@ -193,14 +209,82 @@
     socket.emit("act", { type: "ready", payload: {} });
   });
 
+  function onSeatClick(seatId) {
+    if (!view) return;
+    const seat = view.seats.find((s) => s.seatId === seatId);
+    if (!seat) return;
+    const admin = view.allowed.admin || [];
+    const acts = view.allowed.act || [];
+    if (admin.includes("setAlive")) {
+      selectedSeatId = seat.seatId;
+      socket.emit("setAlive", { seatId: seat.seatId, alive: !seat.alive });
+      syncScene();
+      return;
+    }
+    if (acts.includes("vote")) {
+      selectedSeatId = seat.seatId;
+      socket.emit("act", { type: "vote", payload: { seatId: seat.seatId } });
+      syncScene();
+    }
+  }
+
+  function showWebglFallback(message) {
+    sceneState = "failed";
+    fallbackEl.hidden = false;
+    if (message) fallbackMsg.textContent = message;
+    renderSeatFallback();
+  }
+
   function phaseHud(phase) {
     return String(phase || "lobby").toUpperCase();
   }
 
-  function shortName(name) {
-    const s = String(name || "?").trim();
-    if (s.length <= 8) return s;
-    return s.slice(0, 7) + "…";
+  function speakerSeatId() {
+    const msgs = view?.channels?.public || [];
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const from = msgs[i].fromSeat;
+      if (typeof from === "number" && from >= 0) return from;
+    }
+    return null;
+  }
+
+  function renderSeatFallback() {
+    if (!seatFallback) return;
+    seatFallback.innerHTML = "";
+    if (sceneState !== "failed" || !view) return;
+    view.seats.forEach((seat) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = seat.alive ? seat.name : `${seat.name} (dead)`;
+      btn.addEventListener("click", () => onSeatClick(seat.seatId));
+      seatFallback.appendChild(btn);
+    });
+  }
+
+  function syncScene() {
+    if (!view) {
+      sceneApi.sync({
+        phase: "lobby",
+        seats: [],
+        youSeatId: null,
+        speakerSeatId: null,
+        voteSeatId: null,
+        interactive: false,
+      });
+      renderSeatFallback();
+      return;
+    }
+    const admin = view.allowed.admin || [];
+    const acts = view.allowed.act || [];
+    sceneApi.sync({
+      phase: view.phase,
+      seats: view.seats,
+      youSeatId: view.you.seatId,
+      speakerSeatId: speakerSeatId(),
+      voteSeatId: selectedSeatId,
+      interactive: admin.includes("setAlive") || acts.includes("vote"),
+    });
+    renderSeatFallback();
   }
 
   function renderHostStrip() {
@@ -314,35 +398,9 @@
         : "Blind line — others can’t see this yet…";
     }
 
-    const n = Math.max(view.seats.length, 1);
-    table.innerHTML = "";
-    view.seats.forEach((seat, i) => {
-      const el = document.createElement("div");
-      const classes = ["seat"];
-      if (seat.kind) classes.push(seat.kind);
-      if (seat.seatId === view.you.seatId) classes.push("you");
-      if (!seat.alive) classes.push("dead");
-      if (selectedSeatId === seat.seatId) classes.push("selected");
-      el.className = classes.join(" ");
-      const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
-      const r = 38;
-      el.style.left = `${50 + r * Math.cos(angle)}%`;
-      el.style.top = `${50 + r * Math.sin(angle)}%`;
-      const kindHtml =
-        seat.kind != null
-          ? `<span class="kind">${escapeHtml(seat.kind)}</span>`
-          : "";
-      el.innerHTML = `<span>${escapeHtml(shortName(seat.name))}</span>${kindHtml}`;
-      el.title = seat.alive ? seat.name : `${seat.name} (dead)`;
-      if ((view.allowed.admin || []).includes("setAlive")) {
-        el.style.cursor = "pointer";
-        el.addEventListener("click", () => {
-          selectedSeatId = seat.seatId;
-          socket.emit("setAlive", { seatId: seat.seatId, alive: !seat.alive });
-        });
-      }
-      table.appendChild(el);
-    });
+    if (selectedSeatId != null && !view.seats.some((s) => s.seatId === selectedSeatId)) {
+      selectedSeatId = null;
+    }
 
     const msgs = view.channels.public || [];
     chat.innerHTML = msgs
@@ -372,6 +430,7 @@
     }
 
     readyBtn.disabled = !view.allowed.act.includes("ready");
+    syncScene();
   }
 
   function escapeHtml(s) {
@@ -381,4 +440,39 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
+
+  async function initScene() {
+    try {
+      const mod = await import("./scene.js");
+      const api = mod.createTableScene(canvas, {
+        onSeatClick,
+        onUnavailable: () =>
+          showWebglFallback(
+            "3D view unavailable — this browser has no WebGL. Seats are listed below; chat and phase controls still work."
+          ),
+      });
+      sceneApi = api;
+      if (!api.available) {
+        showWebglFallback(
+          "3D view unavailable — this browser has no WebGL. Seats are listed below; chat and phase controls still work."
+        );
+      } else {
+        sceneState = "ready";
+      }
+      syncScene();
+    } catch (err) {
+      console.error(err);
+      showWebglFallback(
+        "3D view failed to load. Seats are listed below; chat and phase controls still work."
+      );
+    }
+  }
+
+  window.__dining = {
+    debug: () => sceneApi.debug(),
+    projectSeat: (seatId) => sceneApi.projectSeat(seatId),
+    ready: () => sceneState === "ready",
+  };
+
+  initScene();
 })();

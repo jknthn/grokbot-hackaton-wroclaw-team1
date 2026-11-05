@@ -23,6 +23,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Dining-hall UI imports Three as ESM. Serve the package as-is (no bundler).
+app.use(
+  "/vendor/three",
+  express.static(path.join(__dirname, "..", "node_modules", "three"))
+);
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 const room = createRoom(rules, { joinPin: JOIN_PIN });
