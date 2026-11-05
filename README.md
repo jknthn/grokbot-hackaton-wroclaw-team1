@@ -11,6 +11,8 @@
 
 **Play now:** https://grokmafia-kernel.onrender.com · PIN **`4821`**  
 **Projector:** https://grokmafia-kernel.onrender.com/stream  
+**Video of demo:** https://youtu.be/IKUW3Hs-W54
+
 
 *Free Render may cold-start ~30–60s — open the URL once before judging.*
 
