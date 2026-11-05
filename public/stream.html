@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/stream.css" />
   </head>
-  <body class="stream-body">
+  <body class="stream-body phase-lobby">
     <div class="stream-shell">
       <header class="stream-top">
         <div class="stream-brand">
@@ -28,6 +28,8 @@
         </div>
       </header>
 
+      <nav id="stream-rail" class="stream-rail" aria-label="Phases"></nav>
+
       <div id="stream-banner" class="now-banner stream-banner">
         <strong id="stream-action">WAITING</strong>
         <span id="stream-detail">Open this on the projector. Players join from the main URL.</span>
@@ -35,11 +37,29 @@
 
       <main class="stream-main">
         <section class="stream-table-wrap">
-          <div id="stream-table" class="table stream-table" aria-label="Seats"></div>
-          <p id="stream-window" class="stream-window" hidden></p>
+          <div id="stream-table" class="table stream-table" aria-label="Seats">
+            <div id="stream-center" class="stream-center">
+              <span id="stream-center-phase">LOBBY</span>
+              <span id="stream-center-sub" class="muted"></span>
+            </div>
+          </div>
+          <div id="stream-window" class="stream-window" hidden>
+            <div class="stream-window-label">SEALED WRITE</div>
+            <div id="stream-window-bar" class="stream-window-bar">
+              <span id="stream-window-fill"></span>
+            </div>
+            <div id="stream-window-count" class="stream-window-count">0/0</div>
+          </div>
+          <div id="stream-vote" class="stream-vote" hidden>
+            <span id="stream-vote-count">VOTES 0/0</span>
+          </div>
         </section>
+
         <section class="stream-chat-wrap">
-          <h2 class="stream-chat-label">TOWN RECORD</h2>
+          <div class="stream-chat-head">
+            <h2 class="stream-chat-label">TOWN RECORD</h2>
+            <span id="stream-chat-meta" class="muted"></span>
+          </div>
           <div id="stream-chat" class="chat stream-chat"></div>
         </section>
       </main>
