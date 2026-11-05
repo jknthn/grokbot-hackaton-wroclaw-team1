@@ -26,18 +26,17 @@ Town hall energy: shared table, public transcript, phase drama (`talk` → `cris
 ### Palette (starting point)
 
 ```css
---bg: #0d1118;
---panel: #1a2332;
---ink: #e8f0ff;
---muted: #7a8aa0;
---accent: #f0b429;   /* amber / crisis */
---danger: #e84c4c;
---human: #3d9a6a;
---bot: #4a7fd4;
---line: #2a3548;
+--bg: #0c0a0d;       /* asphalt night */
+--panel: #1a1412;    /* back-room wood */
+--ink: #f3e6d4;
+--muted: #8b7a6a;
+--accent: #e8a020;   /* streetlamp / neon gold */
+--neon: #ff4d6d;     /* district sign */
+--danger: #c41e3a;
+--line: #3a2e28;
 ```
 
-Avoid default “AI purple gradient” looks.
+Vibe: **noir city / mafia back room** — skyline, alley fog, wire-tap transcript — still pixel HUD. Avoid purple “AI” gradients.
 
 ## Chrome
 
