@@ -42,6 +42,7 @@
   const voteCount = document.getElementById("vote-count");
   const nowAction = document.getElementById("now-action");
   const nowDetail = document.getElementById("now-detail");
+  const nightVeil = document.getElementById("night-veil");
   const readyBtn = document.getElementById("ready-btn");
 
   let view = null;
@@ -392,7 +393,14 @@
     const windowOpen = Boolean(view.window?.open);
     const isCrisis = view.phase === "crisis";
     const isVote = view.phase === "vote";
+    const isNight = view.phase === "night";
+    const humanNight = isNight && view.you.kind === "human";
     const canVote = isVote && view.allowed.act.includes("vote");
+    if (nightVeil) {
+      nightVeil.hidden = !humanNight;
+    }
+    document.body.classList.toggle("night-human", humanNight);
+    document.body.classList.toggle("night-bot", isNight && view.you.kind === "bot");
     chatWrap.classList.toggle("is-sealed", windowOpen);
     windowBanner.hidden = !windowOpen;
     if (windowOpen) {
@@ -478,8 +486,19 @@
       if (isVote && view.meta?.youVoted && view.meta.yourVoteTarget === seat.seatId) {
         classes.push("voted", "vote-target");
       }
-      if (seat.alive && recentSpeakers.has(seat.seatId)) classes.push("spoke");
+      if (seat.alive && recentSpeakers.has(seat.seatId) && !humanNight) {
+        classes.push("spoke");
+      }
       if (vanishSeats.has(seat.seatId)) classes.push("vanish");
+      if (humanNight && seat.alive) classes.push("silhouette");
+      if (
+        isNight &&
+        view.you.kind === "bot" &&
+        seat.seatId === view.you.seatId &&
+        view.meta?.shadowLabel
+      ) {
+        classes.push("hood");
+      }
       el.className = classes.join(" ");
       const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
       const r = 38;
@@ -491,15 +510,30 @@
           : "";
       const chip = evidenceChips.get(seat.seatId);
       const chipHtml =
-        chip && seat.alive
+        chip && seat.alive && !humanNight
           ? `<span class="evidence">${escapeHtml(chip)}</span>`
           : "";
-      el.innerHTML = `<span>${escapeHtml(shortName(seat.name))}</span>${kindHtml}${chipHtml}`;
-      el.title = seat.alive
-        ? chip
-          ? `${seat.name} · ${chip}`
-          : seat.name
-        : `${seat.name} (dead)`;
+      let labelHtml;
+      if (humanNight && seat.alive) {
+        labelHtml = `<span class="hood-icon" aria-hidden="true"></span><span class="sil-label">?</span>`;
+      } else if (
+        isNight &&
+        view.you.kind === "bot" &&
+        seat.seatId === view.you.seatId &&
+        view.meta?.shadowLabel
+      ) {
+        labelHtml = `<span class="hood-icon" aria-hidden="true"></span><span>${escapeHtml(view.meta.shadowLabel.replace(/^Shadow\s+/i, "S."))}</span>`;
+      } else {
+        labelHtml = `<span>${escapeHtml(shortName(seat.name))}</span>`;
+      }
+      el.innerHTML = `${labelHtml}${kindHtml}${chipHtml}`;
+      el.title = humanNight && seat.alive
+        ? "A seat in the dark"
+        : seat.alive
+          ? chip
+            ? `${seat.name} · ${chip}`
+            : seat.name
+          : `${seat.name} (dead)`;
 
       if (canVote && seat.alive) {
         el.style.cursor = "pointer";
