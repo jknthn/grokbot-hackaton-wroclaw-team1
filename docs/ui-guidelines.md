@@ -26,17 +26,16 @@ Town hall energy: shared table, public transcript, phase drama (`talk` → `cris
 ### Palette (starting point)
 
 ```css
---bg: #0c0a0d;       /* asphalt night */
---panel: #1a1412;    /* back-room wood */
---ink: #f3e6d4;
---muted: #8b7a6a;
---accent: #e8a020;   /* streetlamp / neon gold */
---neon: #ff4d6d;     /* district sign */
---danger: #c41e3a;
---line: #3a2e28;
+--bg: #0f0c0a;
+--panel: #1c1510;    /* wood paneling */
+--ink: #f5ecd9;
+--muted: #9a8770;
+--accent: #c9a227;   /* gold chain / club trim */
+--neon: #8b1e2d;     /* burgundy booth / club door */
+--line: #3d2f24;
 ```
 
-Vibe: **noir city / mafia back room** — skyline, alley fog, wire-tap transcript — still pixel HUD. Avoid purple “AI” gradients.
+Vibe: **North Jersey sit-down** (Sopranos-adjacent) — mahogany, gold, burgundy, industrial skyline, round “SIT-DOWN” table. Title in Cinzel; HUD/labels stay pixel (Press Start / VT323). Avoid trademarked names and purple “AI” looks.
 
 ## Chrome
 

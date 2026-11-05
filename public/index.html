@@ -3,24 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DISTRICT — Back Room</title>
+    <title>NORTH JERSEY — The Club</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Press+Start+2P&family=VT323&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div id="join-screen" class="panel join">
-      <p class="eyebrow">NIGHT DISTRICT · INVITE ONLY</p>
-      <h1>BACK ROOM</h1>
-      <p class="sub">City table · keep your mouth shut · pin to enter</p>
-      <label>Alias <input id="name" maxlength="24" placeholder="VITO" autocomplete="nickname" /></label>
-      <label>Door PIN <input id="pin" maxlength="8" placeholder="4821" value="4821" autocomplete="off" /></label>
-      <label class="check"><input type="checkbox" id="want-host" /> Run the table (host)</label>
-      <button id="join-btn" type="button">ENTER</button>
+      <p class="eyebrow">NORTH JERSEY · MEMBERS ONLY</p>
+      <h1>THE CLUB</h1>
+      <p class="sub">Sit-down at the table. Watch what you say. Bring the pin.</p>
+      <label>Name <input id="name" maxlength="24" placeholder="TONY" autocomplete="nickname" /></label>
+      <label>Door code <input id="pin" maxlength="8" placeholder="4821" value="4821" autocomplete="off" /></label>
+      <label class="check"><input type="checkbox" id="want-host" /> I’m running this sit-down (host)</label>
+      <button id="join-btn" type="button">COME IN</button>
       <p id="join-error" class="error" hidden></p>
     </div>
 
@@ -40,13 +40,13 @@
       <main class="layout">
         <section class="table-wrap">
           <div id="table" class="table" aria-label="Seats"></div>
-          <p class="hint">Quiet room? Host opens <em>TALK</em>.</p>
+          <p class="hint">Nobody talking? Host opens <em>TALK</em>.</p>
         </section>
         <section id="chat-wrap" class="chat-wrap">
           <div id="chat" class="chat"></div>
           <form id="say-form" class="say">
-            <input id="say-input" maxlength="280" placeholder="Speak carefully…" autocomplete="off" />
-            <button type="submit">SEND</button>
+            <input id="say-input" maxlength="280" placeholder="Be careful what you put on the record…" autocomplete="off" />
+            <button type="submit">SAY</button>
           </form>
           <button id="ready-btn" type="button" class="secondary">READY</button>
         </section>

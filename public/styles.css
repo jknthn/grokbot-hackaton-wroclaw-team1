@@ -1,24 +1,24 @@
 :root {
-  --bg: #0c0a0d;
-  --panel: #1a1412;
-  --ink: #f3e6d4;
-  --muted: #8b7a6a;
-  --accent: #e8a020;
-  --neon: #ff4d6d;
-  --danger: #c41e3a;
-  --human: #3d9a6a;
-  --bot: #4a7fd4;
-  --line: #3a2e28;
-  --seat: #241c18;
-  --shadow: #050304;
-  --fog: rgba(180, 160, 140, 0.08);
+  /* North Jersey night — wood paneling, gold chain, burgundy booth */
+  --bg: #0f0c0a;
+  --panel: #1c1510;
+  --ink: #f5ecd9;
+  --muted: #9a8770;
+  --accent: #c9a227;
+  --neon: #8b1e2d;
+  --danger: #9e1b2e;
+  --booth: #4a2018;
+  --olive: #3d4a32;
+  --line: #3d2f24;
+  --seat: #2a1f18;
+  --shadow: #070504;
+  --font-title: "Cinzel", "Times New Roman", serif;
   --font-display: "Press Start 2P", monospace;
   --font-body: "VT323", monospace;
 }
 
 * {
   box-sizing: border-box;
-  image-rendering: pixelated;
 }
 
 body {
@@ -30,31 +30,25 @@ body {
   line-height: 1.25;
   background-color: var(--bg);
   background-image:
-    /* streetlamp wash */
-    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(232, 160, 32, 0.14), transparent 55%),
-    /* alley fog */
-    radial-gradient(ellipse 60% 30% at 20% 80%, var(--fog), transparent 50%),
-    radial-gradient(ellipse 50% 25% at 85% 70%, rgba(255, 77, 109, 0.06), transparent 45%),
-    /* rain scanlines */
-    repeating-linear-gradient(
-      180deg,
-      transparent,
-      transparent 3px,
-      rgba(0, 0, 0, 0.18) 3px,
-      rgba(0, 0, 0, 0.18) 4px
-    ),
-    /* city skyline silhouette */
-    linear-gradient(180deg, transparent 58%, #08060a 58%),
+    /* sodium streetlight */
+    radial-gradient(ellipse 90% 50% at 70% -10%, rgba(201, 162, 39, 0.16), transparent 50%),
+    /* club neon bleed */
+    radial-gradient(ellipse 40% 30% at 10% 90%, rgba(139, 30, 45, 0.18), transparent 55%),
+    /* turnpike haze */
+    linear-gradient(180deg, rgba(15, 12, 10, 0.2) 0%, transparent 40%),
+    /* distant industrial NJ / skyline blocks */
+    linear-gradient(180deg, transparent 62%, #0a0806 62%),
     repeating-linear-gradient(
       90deg,
-      transparent 0 18px,
-      #100e12 18px 22px,
-      transparent 22px 40px,
-      #0e0c10 40px 52px,
-      transparent 52px 70px,
-      #121014 70px 78px
+      #0a0806 0 14px,
+      #15110e 14px 28px,
+      #0a0806 28px 36px,
+      #1a1410 36px 48px,
+      #0a0806 48px 58px,
+      #12100c 58px 72px,
+      #0a0806 72px 90px
     ),
-    linear-gradient(180deg, #141018 0%, #0c0a0d 45%, #08060a 100%);
+    linear-gradient(165deg, #1a1412 0%, #0f0c0a 40%, #0a0806 100%);
   background-attachment: fixed;
 }
 
@@ -64,14 +58,13 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: 0;
+  opacity: 0.85;
   background:
-    /* lit windows in skyline band */
-    radial-gradient(circle at 12% 72%, rgba(232, 160, 32, 0.35) 0 1px, transparent 2px),
-    radial-gradient(circle at 28% 68%, rgba(255, 77, 109, 0.4) 0 1px, transparent 2px),
-    radial-gradient(circle at 47% 74%, rgba(232, 160, 32, 0.3) 0 1px, transparent 2px),
-    radial-gradient(circle at 63% 69%, rgba(243, 230, 212, 0.25) 0 1px, transparent 2px),
-    radial-gradient(circle at 81% 73%, rgba(232, 160, 32, 0.35) 0 1px, transparent 2px);
-  opacity: 0.9;
+    radial-gradient(circle at 18% 70%, rgba(201, 162, 39, 0.5) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 34% 66%, rgba(245, 236, 217, 0.35) 0 1px, transparent 2px),
+    radial-gradient(circle at 52% 72%, rgba(201, 162, 39, 0.4) 0 1px, transparent 2px),
+    radial-gradient(circle at 71% 68%, rgba(139, 30, 45, 0.55) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 88% 74%, rgba(201, 162, 39, 0.35) 0 1px, transparent 2px);
 }
 
 .panel,
@@ -84,65 +77,71 @@ body::before {
 }
 
 .join {
-  margin-top: 8vh;
+  margin-top: 7vh;
   display: grid;
-  gap: 0.85rem;
-  max-width: 440px;
-  padding: 1.35rem 1.25rem 1.25rem;
-  background: linear-gradient(180deg, #221814 0%, var(--panel) 100%);
+  gap: 0.9rem;
+  max-width: 460px;
+  padding: 1.5rem 1.35rem 1.35rem;
+  background:
+    linear-gradient(180deg, rgba(201, 162, 39, 0.08), transparent 28%),
+    linear-gradient(180deg, #261c16 0%, var(--panel) 100%);
   border: 4px solid var(--line);
-  border-top-color: var(--accent);
+  border-top: 4px solid var(--accent);
   box-shadow:
-    6px 6px 0 var(--shadow),
-    inset 0 0 0 1px rgba(232, 160, 32, 0.15);
+    7px 7px 0 var(--shadow),
+    inset 0 0 0 1px rgba(201, 162, 39, 0.2);
 }
 
 .join .eyebrow {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 0.45rem;
-  letter-spacing: 0.18em;
+  font-size: 0.42rem;
+  letter-spacing: 0.2em;
   color: var(--neon);
-  text-shadow: 0 0 8px rgba(255, 77, 109, 0.45);
+  text-shadow: 1px 1px 0 var(--shadow);
 }
 
 .join h1 {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(0.95rem, 3.8vw, 1.25rem);
-  line-height: 1.5;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: clamp(2.2rem, 8vw, 3.2rem);
+  line-height: 1.05;
+  letter-spacing: 0.04em;
   color: var(--accent);
   text-shadow:
     3px 3px 0 var(--shadow),
-    0 0 12px rgba(232, 160, 32, 0.35);
+    0 0 24px rgba(201, 162, 39, 0.25);
 }
 
 .sub {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.25rem;
   color: var(--muted);
-  font-size: 1.15rem;
+  font-size: 1.2rem;
 }
 
 label {
   display: grid;
   gap: 0.35rem;
   font-family: var(--font-display);
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   color: var(--muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 label.check {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  font-size: 0.5rem;
+  font-size: 0.45rem;
+  line-height: 1.4;
 }
 
 input[type="checkbox"] {
   width: 1rem;
   height: 1rem;
   accent-color: var(--accent);
+  flex-shrink: 0;
 }
 
 input[type="text"],
@@ -154,10 +153,10 @@ input[type="password"],
   padding: 0.55rem 0.65rem;
   border: 3px solid var(--line);
   border-radius: 0;
-  background: #0e0b0c;
+  background: #0c0908;
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   box-shadow: inset 2px 2px 0 var(--shadow);
 }
 
@@ -170,12 +169,13 @@ button {
   font-family: var(--font-display);
   font-size: 0.58rem;
   cursor: pointer;
-  border: 3px solid var(--shadow);
+  border: 3px solid #2a1c10;
   border-radius: 0;
-  padding: 0.75rem 1rem;
-  background: var(--accent);
+  padding: 0.8rem 1rem;
+  background: linear-gradient(180deg, #dfb84a 0%, var(--accent) 55%, #9a7a1c 100%);
   color: #1a1008;
   box-shadow: 4px 4px 0 var(--shadow);
+  letter-spacing: 0.04em;
 }
 
 button:active:not(:disabled) {
@@ -184,7 +184,7 @@ button:active:not(:disabled) {
 }
 
 button.secondary {
-  background: #2a1c18;
+  background: var(--booth);
   color: var(--ink);
   border-color: var(--line);
   margin-top: 0.5rem;
@@ -198,12 +198,12 @@ button:disabled {
 }
 
 .host button {
-  background: #2a1c18;
+  background: #2a1f18;
   color: var(--ink);
   border: 3px solid var(--line);
   margin: 0.15rem;
   padding: 0.45rem 0.55rem;
-  font-size: 0.45rem;
+  font-size: 0.42rem;
   box-shadow: 3px 3px 0 var(--shadow);
 }
 
@@ -214,22 +214,20 @@ button:disabled {
   gap: 1rem;
   margin-bottom: 1rem;
   flex-wrap: wrap;
-  padding: 0.75rem;
-  background: linear-gradient(90deg, #1e1612 0%, #161210 100%);
+  padding: 0.75rem 0.9rem;
+  background: linear-gradient(90deg, #241810 0%, #16110e 100%);
   border: 4px solid var(--line);
-  border-left: 4px solid var(--neon);
+  border-left: 5px solid var(--neon);
   box-shadow: 5px 5px 0 var(--shadow);
 }
 
 .phase-hud {
   display: inline-block;
   font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
   color: var(--accent);
-  text-shadow:
-    2px 2px 0 var(--shadow),
-    0 0 10px rgba(232, 160, 32, 0.4);
+  text-shadow: 2px 2px 0 var(--shadow);
 }
 
 .phase-hud.is-live {
@@ -238,8 +236,7 @@ button:disabled {
 
 @keyframes phase-blink {
   50% {
-    color: var(--neon);
-    text-shadow: 0 0 12px rgba(255, 77, 109, 0.7);
+    color: #e8d5a3;
   }
 }
 
@@ -263,11 +260,17 @@ button:disabled {
   body {
     font-size: 20px;
   }
+
+  .join h1 {
+    font-size: 2.1rem;
+  }
 }
 
 .table-wrap {
   padding: 0.75rem;
-  background: linear-gradient(180deg, #221814, var(--panel));
+  background:
+    linear-gradient(180deg, rgba(61, 74, 50, 0.15), transparent 40%),
+    linear-gradient(180deg, #241810, var(--panel));
   border: 4px solid var(--line);
   box-shadow: 5px 5px 0 var(--shadow);
 }
@@ -277,53 +280,52 @@ button:disabled {
   width: min(100%, 360px);
   aspect-ratio: 1;
   margin: 0 auto;
-  border-radius: 0;
-  border: 4px solid #4a3428;
+  border-radius: 50%;
+  border: 5px solid #5a4030;
   background:
-    radial-gradient(circle at 50% 45%, #3a281c 0%, #241810 55%, #140e0c 100%);
+    radial-gradient(circle at 50% 42%, #5a3a28 0%, #3a2418 42%, #1e1410 78%);
   box-shadow:
-    inset 0 0 0 3px #1a100c,
-    inset 0 0 40px rgba(0, 0, 0, 0.55);
+    inset 0 0 0 4px #2a1a12,
+    inset 0 0 50px rgba(0, 0, 0, 0.5),
+    0 0 0 2px #1a100c;
 }
 
 .table::before {
   content: "";
   position: absolute;
-  inset: 18%;
-  border: 3px solid rgba(232, 160, 32, 0.2);
+  inset: 16%;
+  border: 2px solid rgba(201, 162, 39, 0.28);
   border-radius: 50%;
   pointer-events: none;
 }
 
 .table::after {
-  content: "BACK ROOM";
+  content: "SIT-DOWN";
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  font-family: var(--font-display);
-  font-size: 0.42rem;
-  color: rgba(232, 160, 32, 0.35);
-  letter-spacing: 0.14em;
+  font-family: var(--font-title);
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  color: rgba(201, 162, 39, 0.4);
   pointer-events: none;
-  text-align: center;
-  width: 70%;
 }
 
 .seat {
   position: absolute;
-  width: 70px;
-  height: 70px;
-  margin: -35px 0 0 -35px;
-  border-radius: 0;
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  border-radius: 2px;
   display: grid;
   place-content: center;
   text-align: center;
   font-family: var(--font-display);
-  font-size: 0.42rem;
+  font-size: 0.4rem;
   line-height: 1.25;
-  background: var(--seat);
-  border: 3px solid var(--line);
+  background: linear-gradient(180deg, #3a2a20, var(--seat));
+  border: 3px solid #5a4030;
   padding: 0.2rem;
   box-shadow: 3px 3px 0 var(--shadow);
   word-break: break-word;
@@ -331,14 +333,14 @@ button:disabled {
 
 .seat.human,
 .seat.bot {
-  border-color: var(--line);
+  border-color: #5a4030;
 }
 
 .seat.you {
   border-color: var(--accent);
   box-shadow:
-    4px 4px 0 #5a3a10,
-    0 0 0 1px rgba(232, 160, 32, 0.5);
+    4px 4px 0 #4a3810,
+    0 0 0 1px rgba(201, 162, 39, 0.55);
 }
 
 .seat.flash {
@@ -348,8 +350,7 @@ button:disabled {
 @keyframes seat-flash {
   50% {
     background: var(--neon);
-    color: #1a080c;
-    border-color: var(--ink);
+    color: var(--ink);
   }
 }
 
@@ -368,7 +369,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   min-height: 320px;
-  background: linear-gradient(180deg, #1e1612, #14100e);
+  background: linear-gradient(180deg, #221810, #14100c);
   border: 4px solid var(--line);
   border-radius: 0;
   padding: 0.75rem;
@@ -376,11 +377,11 @@ button:disabled {
 }
 
 .chat-wrap::after {
-  content: "WIRE TAP · PUBLIC";
+  content: "THE RECORD · WHAT WAS SAID";
   order: -1;
   font-family: var(--font-display);
-  font-size: 0.4rem;
-  letter-spacing: 0.12em;
+  font-size: 0.38rem;
+  letter-spacing: 0.14em;
   color: var(--muted);
   margin-bottom: 0.45rem;
 }
@@ -390,11 +391,11 @@ button:disabled {
 }
 
 .chat-wrap.is-sealed::before {
-  content: "SEALED — NO LEAKS";
+  content: "OFF THE RECORD — SEALED";
   display: block;
   font-family: var(--font-display);
-  font-size: 0.45rem;
-  color: var(--neon);
+  font-size: 0.42rem;
+  color: #d4a0a8;
   margin-bottom: 0.5rem;
   letter-spacing: 0.06em;
 }
@@ -407,13 +408,13 @@ button:disabled {
   gap: 0.35rem;
   margin-bottom: 0.75rem;
   max-height: 360px;
-  background: #0a0809;
+  background: #0c0908;
   border: 3px solid var(--line);
   padding: 0.5rem;
 }
 
 .msg {
-  font-size: 1.2rem;
+  font-size: 1.25rem;
 }
 
 .msg .who {
@@ -431,10 +432,10 @@ button:disabled {
 }
 
 .error {
-  color: var(--danger);
+  color: #e07080;
   margin-top: 0.75rem;
   font-family: var(--font-display);
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   line-height: 1.5;
 }
 
