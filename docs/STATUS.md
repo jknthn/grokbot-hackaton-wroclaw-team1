@@ -29,17 +29,13 @@
 
 Optional: set `GROK_API_KEY` in Render → Environment for live Grok lines.
 
+## Parallel / non-blocking
+
+- [UI guidelines](ui-guidelines.md) — pixel town hall direction for a later CSS pass; does not block M1.
+
 ## What is not done yet (Milestone 1)
 
-Swap/add `MafiaRules` (or sibling social rules):
-
-- Private night channel + tagged Mafia agents
-- Phases night / day / vote / reveal
-- `act: vote` (and kill resolution)
-- ≥2 bots with conflicting goals/prompts
-- Pitch refresh for multiagent Mafia claim
-
-Kernel / sockets / seat UI should stay; only `server/rules/` + bot prompts grow.
+Gameplay rules (see also locked-loop docs on feature branches if present). Kernel / sockets / seat UI stay; Rules + bot prompts grow. Styling can land independently.
 
 ## Ops notes
 

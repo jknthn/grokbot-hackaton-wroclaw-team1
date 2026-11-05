@@ -5,6 +5,7 @@ Multiagent social deduction (Mafia-shaped) on a game-agnostic kernel: humans and
 ## Docs
 
 - **[Current status](docs/STATUS.md)** — live URL, PIN, M0 done / M1 next
+- [UI guidelines](docs/ui-guidelines.md) — pixel town hall skin (non-blocking)
 - [Project plan](docs/grokmafia-plan.md)
 - [M0 acceptance](docs/m0-acceptance.md)
 - [Pitch v0](docs/pitch-v0.md)
