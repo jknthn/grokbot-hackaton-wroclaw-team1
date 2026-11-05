@@ -308,6 +308,16 @@
     if (!step?.view) return;
     handlers.state?.({ view: step.view() });
     updateChrome(step);
+    scheduleGuide(step);
+  }
+
+  function scheduleGuide(step) {
+    const guide = step?.id ? window.DEMO_GUIDES?.[step.id] : null;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.__demoShowGuide?.(guide || null);
+      });
+    });
   }
 
   function updateChrome(step) {
@@ -325,7 +335,12 @@
     }
     const next = bar.querySelector("[data-demo-next]");
     if (next) next.disabled = stepIndex >= STEPS.length - 1;
+    const back = bar.querySelector("[data-demo-back]");
+    if (back) back.disabled = !inGame || stepIndex <= 0;
     renderObserver();
+    if (!inGame) {
+      requestAnimationFrame(() => window.__demoShowGuide?.(window.DEMO_GUIDES?.join));
+    }
   }
 
   function renderObserver() {
@@ -351,6 +366,12 @@
     pushState();
   }
 
+  function retreat() {
+    if (!inGame || stepIndex <= 0) return;
+    stepIndex -= 1;
+    pushState();
+  }
+
   function resetDemo() {
     stepIndex = 0;
     inGame = false;
@@ -365,6 +386,7 @@
       join.hidden = false;
       game.hidden = true;
     }
+    window.__demoHideGuide?.();
     updateChrome(STEPS[0]);
   }
 
@@ -419,11 +441,13 @@
     window.io = () => socket;
 
     window.__demoAdvance = advance;
+    window.__demoRetreat = retreat;
     window.__demoReset = resetDemo;
 
     document.addEventListener("DOMContentLoaded", () => {
       const bar = document.getElementById("demo-bar");
       bar?.querySelector("[data-demo-next]")?.addEventListener("click", advance);
+      bar?.querySelector("[data-demo-back]")?.addEventListener("click", retreat);
       bar?.querySelector("[data-demo-reset]")?.addEventListener("click", resetDemo);
       bar?.querySelector("[data-demo-join]")?.addEventListener("click", () => {
         document.getElementById("join-btn")?.click();

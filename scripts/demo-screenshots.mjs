@@ -4,38 +4,57 @@ import { mkdirSync } from "fs";
 mkdirSync("/opt/cursor/artifacts", { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
-page.on("pageerror", (e) => errors.push(String(e)));
-page.on("console", (m) => {
-  if (m.type() === "error") errors.push(m.text());
-});
+const shots = [];
 
-await page.goto("http://127.0.0.1:3000/demo", { waitUntil: "networkidle" });
-await page.screenshot({ path: "/opt/cursor/artifacts/mw-ui-demo-join-1440x900.png" });
-
-await page.click("[data-demo-join]");
-await page.waitForSelector("#game:not([hidden])", { timeout: 8000 });
-await page.waitForTimeout(1500);
-await page.screenshot({ path: "/opt/cursor/artifacts/mw-ui-demo-lobby-1440x900.png" });
-
-for (let i = 0; i < 4; i++) {
-  await page.click("[data-demo-next]");
-  await page.waitForTimeout(600);
+async function snap(page, name) {
+  const path = `/opt/cursor/artifacts/${name}`;
+  await page.waitForTimeout(450);
+  await page.screenshot({ path });
+  shots.push(path);
 }
-await page.screenshot({ path: "/opt/cursor/artifacts/mw-ui-demo-blind-1440x900.png" });
 
-for (let i = 0; i < 3; i++) {
-  await page.click("[data-demo-next]");
-  await page.waitForTimeout(600);
-}
-await page.screenshot({ path: "/opt/cursor/artifacts/mw-ui-demo-vote-1440x900.png" });
+for (const size of [
+  { w: 1440, h: 900, tag: "1440x900" },
+  { w: 1280, h: 800, tag: "1280x800" },
+]) {
+  const page = await browser.newPage({ viewport: { width: size.w, height: size.h } });
+  page.on("pageerror", (e) => errors.push(String(e)));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
 
-for (let i = 0; i < 3; i++) {
-  await page.click("[data-demo-next]");
-  await page.waitForTimeout(600);
+  await page.goto("http://127.0.0.1:3000/demo", { waitUntil: "networkidle" });
+  await snap(page, `mw-ui-guided-join-${size.tag}.png`);
+
+  await page.click("[data-demo-join]");
+  await page.waitForSelector("#game:not([hidden])", { timeout: 8000 });
+  await page.waitForSelector(".demo-spotlight-hole", { timeout: 5000 });
+  await snap(page, `mw-ui-guided-lobby-${size.tag}.png`);
+
+  const steps = ["blind", "reveal", "vote", "night", "ended"];
+  let clicks = 0;
+  while (clicks < 10 && steps.length) {
+    await page.click("[data-demo-next]");
+    clicks += 1;
+    await page.waitForTimeout(500);
+    const id = await page.evaluate(() => {
+      const t = document.querySelector("[data-demo-step]")?.textContent || "";
+      if (/Blind write/i.test(t)) return "blind";
+      if (/REVEAL/i.test(t)) return "reveal";
+      if (/^Vote —/i.test(t)) return "vote";
+      if (/^Night —/i.test(t)) return "night";
+      if (/Game over/i.test(t)) return "ended";
+      return "";
+    });
+    if (id && steps[0] === id) {
+      await snap(page, `mw-ui-guided-${id}-${size.tag}.png`);
+      steps.shift();
+    }
+  }
+
+  await page.close();
 }
-await page.screenshot({ path: "/opt/cursor/artifacts/mw-ui-demo-ended-1440x900.png" });
 
 await browser.close();
-console.log(JSON.stringify({ ok: true, errors }, null, 2));
+console.log(JSON.stringify({ ok: true, errors, shots }, null, 2));

@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 9999;
+  z-index: 10000;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -55,7 +55,7 @@ body.demo-page .panel.join {
   position: fixed;
   left: 12px;
   bottom: 12px;
-  z-index: 9000;
+  z-index: 8500;
   width: min(320px, calc(100vw - 24px));
   max-height: 40vh;
   overflow: auto;
@@ -80,4 +80,72 @@ body.demo-page .panel.join {
   margin: 0;
   color: var(--muted);
   font-size: 18px;
+}
+
+.demo-focus {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  pointer-events: none;
+}
+
+.demo-spotlight-hole {
+  position: fixed;
+  box-sizing: border-box;
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 9999px rgba(4, 3, 2, 0.84),
+    0 0 28px rgba(201, 162, 39, 0.28),
+    inset 0 0 0 1px rgba(245, 236, 217, 0.15);
+  transition:
+    left 0.22s ease,
+    top 0.22s ease,
+    width 0.22s ease,
+    height 0.22s ease;
+}
+
+.demo-explain {
+  position: fixed;
+  z-index: 9600;
+  max-width: min(300px, calc(100vw - 24px));
+  padding: 12px 14px;
+  background: rgba(22, 16, 12, 0.97);
+  border: 3px solid var(--accent);
+  box-shadow: 5px 5px 0 var(--shadow);
+  pointer-events: none;
+}
+
+.demo-explain-kicker {
+  margin: 0 0 6px;
+  font: 10px/1.2 var(--font-display);
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.demo-explain h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-title);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.15;
+}
+
+.demo-explain p {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--muted);
+}
+
+body.demo-page.demo-guided .hint,
+body.demo-page.demo-guided .host-hint {
+  opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-spotlight-hole {
+    transition: none;
+  }
 }

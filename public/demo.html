@@ -27,6 +27,7 @@
       <span data-demo-step>Join — use Enter demo or COME IN</span>
       <span data-demo-count class="demo-muted">—</span>
       <button type="button" data-demo-join>Enter demo</button>
+      <button type="button" data-demo-back disabled>← BACK</button>
       <button type="button" data-demo-next>NEXT STEP →</button>
       <button type="button" data-demo-reset class="secondary">Reset</button>
       <label class="check"><input type="checkbox" data-demo-observer /> Observer roles (demo only)</label>
@@ -36,6 +37,15 @@
       <h3>OBSERVER · NOT IN GAMEPLAY</h3>
       <div id="demo-observer-body"></div>
     </aside>
+
+    <div id="demo-focus" class="demo-focus" hidden aria-hidden="true">
+      <div class="demo-spotlight-hole"></div>
+      <div class="demo-explain">
+        <p class="demo-explain-kicker">WHAT TO WATCH</p>
+        <h2 data-head></h2>
+        <p data-body></p>
+      </div>
+    </div>
 
     <canvas id="scene" aria-label="Dining hall"></canvas>
 
@@ -102,6 +112,8 @@
       <p id="game-error" class="error" hidden></p>
     </div>
 
+    <script src="/demo-guides.js"></script>
+    <script src="/demo-spotlight.js"></script>
     <script src="/demo-walkthrough.js"></script>
     <script>
       try {

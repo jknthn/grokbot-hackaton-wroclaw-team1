@@ -19,7 +19,9 @@ Open **http://127.0.0.1:3000/demo** (not the production Render URL).
 
 Live gameplay remains at **http://127.0.0.1:3000/** with real Socket.io.
 
-## Files
+## Guided focus
+
+Each step dims the page and highlights what to watch, with a **WHAT TO WATCH** box beside the spotlight. Use **← BACK** / **NEXT STEP →** in the top bar (bar stays above the dim layer). `/` live game is unchanged.
 
 - `public/demo.html` — walkthrough chrome + same `app.js` / `scene.js` as mw-ui
 - `public/demo-walkthrough.js` — mock `io()` adapter and fixture views
