@@ -20,11 +20,17 @@
   const voteCountEl = document.getElementById("stream-vote-count");
   const chatEl = document.getElementById("stream-chat");
   const chatMetaEl = document.getElementById("stream-chat-meta");
+  const townFocusEl = document.getElementById("stream-town-focus");
+  const townLineEl = document.getElementById("stream-town-line");
+  const focusTagEl = document.getElementById("stream-focus-tag");
 
   let view = null;
   let lastPhase = null;
   let lastMsgCount = 0;
   let lastSpeakerSeat = null;
+  let focusSeatId = null;
+  let focusLabel = "";
+  let prevAlive = new Map();
 
   function escapeHtml(s) {
     return String(s)
@@ -177,6 +183,40 @@
     const lastMsg = msgs[msgs.length - 1];
     if (lastMsg && typeof lastMsg.fromSeat === "number" && lastMsg.fromSeat >= 0) {
       lastSpeakerSeat = lastMsg.fromSeat;
+      focusSeatId = lastMsg.fromSeat;
+      focusLabel = `ON AIR · ${lastMsg.name}`;
+    }
+
+    const lastTown = [...msgs].reverse().find((m) => m.name === "Town" || m.fromSeat === -1);
+    if (townFocusEl && townLineEl) {
+      if (lastTown?.text) {
+        townFocusEl.hidden = false;
+        townLineEl.textContent = lastTown.text;
+        townFocusEl.classList.toggle(
+          "is-beat",
+          /vanished|voted out|CRISIS|NIGHT|ENDED|Quiet night/i.test(lastTown.text)
+        );
+      } else {
+        townFocusEl.hidden = true;
+      }
+    }
+
+    const seats = view.seats || [];
+    seats.forEach((seat) => {
+      if (prevAlive.get(seat.seatId) === true && !seat.alive) {
+        focusSeatId = seat.seatId;
+        focusLabel = `VANISHED · ${seat.name}`;
+      }
+      prevAlive.set(seat.seatId, seat.alive);
+    });
+
+    if (focusTagEl) {
+      if (focusLabel && focusSeatId != null) {
+        focusTagEl.hidden = false;
+        focusTagEl.textContent = focusLabel;
+      } else {
+        focusTagEl.hidden = true;
+      }
     }
 
     tableEl.innerHTML = "";
@@ -186,7 +226,6 @@
     center.innerHTML = `<span id="stream-center-phase">${escapeHtml(phase)}</span><span id="stream-center-sub" class="muted">${escapeHtml(centerSub)}</span>`;
     tableEl.appendChild(center);
 
-    const seats = view.seats || [];
     const n = Math.max(seats.length, 1);
     seats.forEach((seat, i) => {
       const el = document.createElement("div");
@@ -196,12 +235,18 @@
       if (seat.alive && !sealed && seat.seatId === lastSpeakerSeat) {
         classes.push("is-speaking");
       }
+      if (seat.seatId === focusSeatId) classes.push("is-focus");
+      if (view.phase === "night" && seat.alive) classes.push("silhouette");
       el.className = classes.join(" ");
       const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
       const r = 38;
       el.style.left = `${50 + r * Math.cos(angle)}%`;
       el.style.top = `${50 + r * Math.sin(angle)}%`;
-      el.innerHTML = `<span>${escapeHtml(shortName(seat.name))}</span><span class="kind">#${seat.seatId}</span>`;
+      const label =
+        view.phase === "night" && seat.alive
+          ? `<span class="hood-icon"></span><span>?</span>`
+          : `<span>${escapeHtml(shortName(seat.name))}</span><span class="kind">#${seat.seatId}</span>`;
+      el.innerHTML = label;
       el.title = seat.alive ? seat.name : `${seat.name} (out)`;
       tableEl.appendChild(el);
     });
