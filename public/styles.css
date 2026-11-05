@@ -304,6 +304,15 @@ button:disabled {
   color: var(--accent);
 }
 
+.vote-banner {
+  border-color: var(--neon);
+}
+
+.seat.voted {
+  outline: 2px solid var(--accent);
+  box-shadow: 0 0 0 2px var(--neon);
+}
+
 .layout {
   display: grid;
   grid-template-columns: 1fr 1fr;

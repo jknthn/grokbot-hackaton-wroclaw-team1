@@ -94,7 +94,7 @@ function getView(room, playerId) {
   }
 
   if (typeof rules.viewMeta === "function") {
-    view.meta = rules.viewMeta(room);
+    view.meta = rules.viewMeta(room, player);
   }
 
   if (player.kind === "bot") {

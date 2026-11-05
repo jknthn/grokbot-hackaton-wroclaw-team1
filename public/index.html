@@ -16,7 +16,7 @@
     <div id="join-screen" class="panel join">
       <p class="eyebrow">TOWN HALL · MEMBERS ONLY</p>
       <h1>THE CLUB</h1>
-      <p class="sub">One join seats you and your shadow. Host ADD BOT packs a 1-human table. Lore names deal at START.</p>
+      <p class="sub">Join (you + shadow). Host ADD BOT to pack bots. Press READY when packed — the Game Master picks a theme and runs the round.</p>
       <label>Name <input id="name" maxlength="24" placeholder="TONY" autocomplete="nickname" /></label>
       <label>Door code <input id="pin" maxlength="8" placeholder="4821" value="4821" autocomplete="off" /></label>
       <label class="check"><input type="checkbox" id="want-host" /> I’m running this sit-down (host)</label>
@@ -50,12 +50,16 @@
       <main class="layout">
         <section class="table-wrap">
           <div id="table" class="table" aria-label="Seats"></div>
-          <p class="hint">Lobby: join (you + shadow), host <em>ADD BOT</em> to pack the table, <em>START</em>, then talk → crisis windows.</p>
+          <p class="hint">Lobby: <em>ADD BOT</em>, then <em>READY</em>. GM runs talk → crisis → vote. Click a seat to vote.</p>
         </section>
         <section id="chat-wrap" class="chat-wrap">
           <div id="window-banner" class="window-banner" hidden>
             <span id="window-status">Blind write open</span>
             <span id="window-count" class="muted"></span>
+          </div>
+          <div id="vote-banner" class="window-banner vote-banner" hidden>
+            <span id="vote-status">VOTE — click a living seat</span>
+            <span id="vote-count" class="muted"></span>
           </div>
           <div id="chat" class="chat"></div>
           <form id="say-form" class="say">

@@ -187,6 +187,19 @@ function createRoom(rules, options = {}) {
     return pairIds.size;
   }
 
+  function applyTheme(themeId) {
+    const themes = typeof rules.themes === "function" ? rules.themes() : [];
+    const id = String(themeId || "").trim();
+    if (themes.length && !themes.some((t) => t.id === id)) {
+      const err = new Error("unknown theme");
+      err.code = "BAD_THEME";
+      throw err;
+    }
+    if (!room.meta) room.meta = {};
+    room.meta.selectedTheme = id;
+    return id;
+  }
+
   function setTheme(hostId, themeId) {
     const host = requireHost(hostId);
     if (!canAdmin(host, "setTheme")) {
@@ -199,27 +212,18 @@ function createRoom(rules, options = {}) {
       err.code = "NOT_LOBBY";
       throw err;
     }
-    const themes =
-      typeof rules.themes === "function" ? rules.themes() : [];
-    const id = String(themeId || "").trim();
-    if (!themes.some((t) => t.id === id)) {
-      const err = new Error("unknown theme");
-      err.code = "BAD_THEME";
-      throw err;
-    }
-    if (!room.meta) room.meta = {};
-    room.meta.selectedTheme = id;
+    const id = applyTheme(themeId);
     emitUpdate();
     return id;
   }
 
-  function startGame(hostId) {
-    const host = requireHost(hostId);
-    if (!canAdmin(host, "startGame")) {
-      const err = new Error("cannot start now");
-      err.code = "FORBIDDEN";
-      throw err;
-    }
+  function allHumansReady() {
+    const humans = listPlayers().filter((p) => p.kind === "human" && p.alive);
+    if (humans.length < 1) return false;
+    return humans.every((p) => p.meta?.ready);
+  }
+
+  function doStartGame() {
     if (room.phase !== "lobby") {
       const err = new Error("already started");
       err.code = "NOT_LOBBY";
@@ -236,10 +240,111 @@ function createRoom(rules, options = {}) {
     shuffleSeatIds();
     const nextPhase =
       typeof rules.postStartPhase === "function" ? rules.postStartPhase() : "talk";
+    const prev = room.phase;
     room.phase = nextPhase;
+    if (typeof rules.onPhaseChange === "function") {
+      rules.onPhaseChange(room, prev, nextPhase);
+    }
     const themeLabel = room.meta?.themeLabel || "the town";
     announce(`The town opens under ${themeLabel}. Lore names are dealt. Kind stays hidden.`);
     emitUpdate();
+  }
+
+  function startGame(hostId) {
+    const host = requireHost(hostId);
+    if (!canAdmin(host, "startGame")) {
+      const err = new Error("cannot start now");
+      err.code = "FORBIDDEN";
+      throw err;
+    }
+    doStartGame();
+  }
+
+  function tryAutoStart(themeId) {
+    if (room.phase !== "lobby") return { ok: false, reason: "not_lobby" };
+    if (countPairs() < 1) return { ok: false, reason: "no_pairs" };
+    if (!allHumansReady()) return { ok: false, reason: "not_ready" };
+    if (themeId) applyTheme(themeId);
+    for (const p of listPlayers()) {
+      if (p.meta) p.meta.ready = false;
+    }
+    doStartGame();
+    return { ok: true };
+  }
+
+  function systemSetPhase(phase) {
+    const allowed = rules.phases();
+    if (!allowed.includes(phase)) {
+      const err = new Error("unknown phase");
+      err.code = "BAD_PHASE";
+      throw err;
+    }
+    const prev = room.phase;
+    room.phase = phase;
+    if (typeof rules.onPhaseChange === "function") {
+      rules.onPhaseChange(room, prev, phase);
+    }
+    emitUpdate();
+  }
+
+  function systemOpenWindow(opts = {}) {
+    if (room.window) {
+      const err = new Error("window already open");
+      err.code = "WINDOW_OPEN";
+      throw err;
+    }
+    const maxLen = Math.min(Math.max(Number(opts.maxLen) || 160, 1), 280);
+    room.window = {
+      id: randomUUID(),
+      maxLen,
+      openedAt: Date.now(),
+      drafts: new Map(),
+    };
+    emitUpdate();
+    return room.window;
+  }
+
+  async function systemCloseWindow(opts = {}) {
+    if (!room.window) {
+      const err = new Error("no window open");
+      err.code = "NO_WINDOW";
+      throw err;
+    }
+    const reveal = opts.reveal !== false;
+    const revealed = [];
+    if (reveal) {
+      const drafts = [...room.window.drafts.entries()].sort((a, b) => a[0] - b[0]);
+      const ts = Date.now();
+      for (const [seatId, draft] of drafts) {
+        const msg = {
+          fromSeat: seatId,
+          name: draft.name,
+          text: draft.text,
+          ts,
+        };
+        room.channels.public.push(msg);
+        revealed.push(msg);
+      }
+    }
+    room.window = null;
+    if (typeof rules.onCloseWindow === "function") {
+      await rules.onCloseWindow(room, revealed);
+    }
+    emitUpdate();
+    return revealed;
+  }
+
+  function resolveVote() {
+    if (typeof rules.resolveVotes !== "function") {
+      return { removed: null, winner: null };
+    }
+    const result = rules.resolveVotes(room);
+    if (result?.winner) {
+      room.meta.winner = result.winner;
+      systemSetPhase("ended");
+    }
+    emitUpdate();
+    return result;
   }
 
   function issueSession(playerId) {
@@ -558,15 +663,22 @@ function createRoom(rules, options = {}) {
     joinPair,
     announce,
     setTheme,
+    applyTheme,
     startGame,
+    tryAutoStart,
+    allHumansReady,
     handleSay,
     handleAct,
     setPhase,
+    systemSetPhase,
     openWindow,
     closeWindow,
+    systemOpenWindow,
+    systemCloseWindow,
     submit,
     addBot,
     setAlive,
+    resolveVote,
     resetGame,
     resetRoom,
     resume,

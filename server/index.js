@@ -6,6 +6,7 @@ const sandbox = require("./rules/sandbox");
 const town = require("./rules/town");
 const { createRoom } = require("./room");
 const { startBotPlayer } = require("./players/botPlayer");
+const { startGameMaster } = require("./gm/gameMaster");
 
 const PORT = Number(process.env.PORT || 3000);
 // Local default: localhost (pair with ngrok). Deploy/platforms: 0.0.0.0
@@ -30,6 +31,8 @@ const room = createRoom(rules, { joinPin: JOIN_PIN });
 const socketPlayers = new Map();
 /** @type {Array<{ stop: () => void, player?: { id: string } }>} */
 const botHandles = [];
+/** @type {{ stop: () => void } | null} */
+let gmHandle = null;
 
 function pushAll() {
   for (const [socketId, playerId] of socketPlayers) {
@@ -230,6 +233,11 @@ io.on("connection", (socket) => {
 
 seedAutoBot();
 
+if (!USE_SANDBOX && process.env.GM_AUTO !== "0") {
+  gmHandle = startGameMaster(room);
+  console.log("[gm] Game Master auto-advance enabled (GM_AUTO=0 to disable)");
+}
+
 server.listen(PORT, HOST, () => {
   console.log("");
   console.log(`  Game kernel listening on http://${HOST}:${PORT}`);
@@ -245,5 +253,6 @@ server.listen(PORT, HOST, () => {
 
 process.on("SIGINT", () => {
   stopAllBots();
+  if (gmHandle) gmHandle.stop();
   process.exit(0);
 });

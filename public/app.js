@@ -31,6 +31,9 @@
   const windowBanner = document.getElementById("window-banner");
   const windowStatus = document.getElementById("window-status");
   const windowCount = document.getElementById("window-count");
+  const voteBanner = document.getElementById("vote-banner");
+  const voteStatus = document.getElementById("vote-status");
+  const voteCount = document.getElementById("vote-count");
   const readyBtn = document.getElementById("ready-btn");
 
   let view = null;
@@ -253,10 +256,14 @@
 
     if (view.lobby && view.phase === "lobby") {
       lobbyStatus.hidden = false;
+      const readyBit =
+        view.lobby.humanCount != null
+          ? ` · ready ${view.lobby.readyHumans || 0}/${view.lobby.humanCount}`
+          : "";
       const themeBit = view.lobby.selectedThemeLabel
         ? ` · ${view.lobby.selectedThemeLabel}`
         : "";
-      lobbyStatus.textContent = `${view.lobby.pairs} pair(s) · ${view.lobby.seats} seats${themeBit} — pick theme, then START`;
+      lobbyStatus.textContent = `${view.lobby.pairs} pair(s) · ${view.lobby.seats} seats${readyBit}${themeBit} — ADD BOT, then READY (or START)`;
     } else if (view.lobby?.theme) {
       lobbyStatus.hidden = false;
       lobbyStatus.textContent = `Theme: ${view.lobby.theme}`;
@@ -295,6 +302,8 @@
 
     const windowOpen = Boolean(view.window?.open);
     const isCrisis = view.phase === "crisis";
+    const isVote = view.phase === "vote";
+    const canVote = isVote && view.allowed.act.includes("vote");
     chatWrap.classList.toggle("is-sealed", windowOpen);
     windowBanner.hidden = !windowOpen;
     if (windowOpen) {
@@ -314,6 +323,21 @@
         : "Blind line — others can’t see this yet…";
     }
 
+    if (voteBanner) {
+      voteBanner.hidden = !isVote;
+      if (isVote) {
+        if (view.meta?.youVoted) {
+          const target = view.seats.find((s) => s.seatId === view.meta.yourVoteTarget);
+          voteStatus.textContent = target
+            ? `You voted ${target.name}`
+            : "Vote locked in";
+        } else {
+          voteStatus.textContent = "VOTE — click a living seat";
+        }
+        voteCount.textContent = `${view.meta?.votesCast || 0}/${view.meta?.votesNeeded || 0} voted`;
+      }
+    }
+
     const n = Math.max(view.seats.length, 1);
     table.innerHTML = "";
     view.seats.forEach((seat, i) => {
@@ -323,6 +347,9 @@
       if (seat.seatId === view.you.seatId) classes.push("you");
       if (!seat.alive) classes.push("dead");
       if (selectedSeatId === seat.seatId) classes.push("selected");
+      if (isVote && view.meta?.youVoted && view.meta.yourVoteTarget === seat.seatId) {
+        classes.push("voted");
+      }
       el.className = classes.join(" ");
       const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
       const r = 38;
@@ -334,7 +361,17 @@
           : "";
       el.innerHTML = `<span>${escapeHtml(shortName(seat.name))}</span>${kindHtml}`;
       el.title = seat.alive ? seat.name : `${seat.name} (dead)`;
-      if ((view.allowed.admin || []).includes("setAlive")) {
+
+      if (canVote && seat.alive) {
+        el.style.cursor = "pointer";
+        el.addEventListener("click", () => {
+          selectedSeatId = seat.seatId;
+          socket.emit("act", { type: "vote", payload: { seatId: seat.seatId } });
+        });
+      } else if (
+        !isVote &&
+        (view.allowed.admin || []).includes("setAlive")
+      ) {
         el.style.cursor = "pointer";
         el.addEventListener("click", () => {
           selectedSeatId = seat.seatId;
