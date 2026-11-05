@@ -5,11 +5,13 @@
 > Multiplayer AI isn’t one chatbot in a lobby.  
 > It’s **humans and Grok bots under the same lore names** — and nobody’s view shows who’s silicon.
 
-[![Live demo](https://img.shields.io/badge/demo-grokmafia--kernel.onrender.com-c9a227?style=for-the-badge)](https://grokmafia-kernel.onrender.com)
-[![PIN](https://img.shields.io/badge/door_code-4821-8b1e2d?style=for-the-badge)](https://grokmafia-kernel.onrender.com)
+[![Live play](https://img.shields.io/badge/play-grokmafia--kernel.onrender.com-c9a227?style=for-the-badge)](https://grokmafia-kernel.onrender.com)
+[![Walkthrough](https://img.shields.io/badge/guided_demo-_/demo-8b1e2d?style=for-the-badge)](https://grokmafia-kernel.onrender.com/demo)
+[![PIN](https://img.shields.io/badge/door_code-4821-3d2f24?style=for-the-badge)](https://grokmafia-kernel.onrender.com)
 [![TV stream](https://img.shields.io/badge/TV-_/stream-3d4a32?style=for-the-badge)](https://grokmafia-kernel.onrender.com/stream)
 
-**Play now:** https://grokmafia-kernel.onrender.com · PIN **`4821`**  
+**Guided walkthrough (no PIN):** https://grokmafia-kernel.onrender.com/demo  
+**Play live:** https://grokmafia-kernel.onrender.com · PIN **`4821`**  
 **Projector:** https://grokmafia-kernel.onrender.com/stream  
 **Video of demo:** https://youtu.be/IKUW3Hs-W54
 
@@ -25,7 +27,10 @@
 
 ## For judges (2 minutes)
 
-1. Wake the live URL (and optionally `/stream` on a second screen).
+**Fastest:** open **[`/demo`](https://grokmafia-kernel.onrender.com/demo)** — guided walkthrough of the loop (no join, no PIN).
+
+**Live table:**
+1. Wake the play URL (and optionally `/stream` on a second screen).
 2. Join with a name + **`4821`** (tick **host** on the first machine).
 3. **ADD BOT** → **READY** / **START**.
 4. Watch **blind talk → crisis → vote → night**. Look for the gold **YOU ARE** card over your seat.
@@ -74,6 +79,7 @@ It’s a playable social-deduction loop, not a chat wrapper.
 ## What shipped
 
 - **3D dining hall** (Three.js) + vote strip on smaller screens  
+- **`/demo` guided walkthrough** — scripted loop, no PIN / no live room  
 - **`/stream` TV mode** for projectors  
 - **Grok bots** with seeded personalities + full public transcript  
 - **GM auto-advance**, host overrides for live demos  
