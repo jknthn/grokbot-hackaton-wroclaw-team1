@@ -689,26 +689,43 @@ const town = {
     });
     room.meta.cityPoints = (Number(room.meta.cityPoints) || 0) + (result.pointsDelta || 0);
     room.meta.slowdown = result.slowdown;
-    // Demo balance: always leave at least 1 point so a night block is possible.
+    room.meta.crisisMvp = result.mvp || null;
+    room.meta.crisisWeakest = result.weakest || null;
+    // Only top up a watch point when the town actually helped but scored 0.
     let watchFund = false;
-    if ((Number(room.meta.cityPoints) || 0) < 1 && n > 0) {
+    if (
+      result.helped &&
+      (Number(room.meta.cityPoints) || 0) < 1 &&
+      n > 0
+    ) {
       room.meta.cityPoints = 1;
       watchFund = true;
     }
     const pts = room.meta.cityPoints;
     const slow =
       result.slowdown === "favor"
-        ? " Tempo leans toward the city."
+        ? " Next write runs longer; night talk shortens."
         : result.slowdown === "against"
-          ? " Tempo leans against the city."
+          ? " Next write runs shorter; night talk lengthens."
           : "";
     const fund = watchFund ? " Watch fund grants 1 city point." : "";
+    const cast =
+      result.mvp && result.weakest
+        ? ` ${result.mvp} carried; ${result.weakest} coasted.`
+        : result.mvp
+          ? ` ${result.mvp} carried the table.`
+          : result.weakest
+            ? ` ${result.weakest} coasted.`
+            : "";
     pushTown(
       room,
-      `Crisis judged (${n} answers). ${result.summary} City points: ${pts}.${slow}${fund} Vote is next.`,
+      `Crisis judged (${n} answers). ${result.summary}${cast} City points: ${pts}.${slow}${fund} Vote is next.`,
       {
         action: "CRISIS RESOLVED",
-        detail: `City points ${pts}. You can spend 1 at night to block a strike.`,
+        detail:
+          pts > 0
+            ? `City points ${pts}. Spend 1 at night to block a strike.`
+            : "No city points banked — a strike may land tonight.",
       }
     );
   },

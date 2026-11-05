@@ -41,25 +41,31 @@ assert.ok(voteView.allowed.act.includes("shadowVote"));
 
 const humanSeat = human.seatId;
 
-// 1-human demo balance: one PASS → no strike (unanimous required)
+// 1-human: 2/3 supermajority — with 3 shadows, need 2 (one PASS no longer vetoes)
+assert.ok(bots.length >= 3);
 room.handleAct(bots[0].id, "shadowVote", { seatId: humanSeat });
 room.handleAct(bots[1].id, "shadowVote", { seatId: humanSeat });
-if (bots[2]) room.handleAct(bots[2].id, "shadowVote", { pass: true });
-else {
-  // only 2 bots from pair+1 extra? we added Extra and Extra2 → pair bot + 2 = 3
-}
+room.handleAct(bots[2].id, "shadowVote", { pass: true });
 let tallied = room.tallyShadowVotes();
-assert.strictEqual(tallied.target, null);
-assert.ok(tallied.unanimous);
+assert.strictEqual(tallied.need, Math.ceil((bots.length * 2) / 3));
+assert.strictEqual(tallied.target, humanSeat);
+assert.ok(tallied.supermajority);
 
-// Reset votes: unanimous strike succeeds
+// Split below 2/3 → quiet (only 1 of 3 strikes)
+room.setNightStage("vote");
+room.handleAct(bots[0].id, "shadowVote", { seatId: humanSeat });
+room.handleAct(bots[1].id, "shadowVote", { pass: true });
+room.handleAct(bots[2].id, "shadowVote", { pass: true });
+tallied = room.tallyShadowVotes();
+assert.strictEqual(tallied.target, null);
+
+// Full pile-on still works
 room.setNightStage("vote");
 for (const b of bots) {
   room.handleAct(b.id, "shadowVote", { seatId: humanSeat });
 }
 tallied = room.tallyShadowVotes();
 assert.strictEqual(tallied.target, humanSeat);
-assert.strictEqual(tallied.need, bots.length);
 
 room.setNightStage("defend");
 assert.ok(room.viewFor(human.id).meta.canBlockNight);
@@ -75,7 +81,7 @@ assert.strictEqual(resolved.winner, null);
 assert.notStrictEqual(room.phase, "ended");
 assert.ok(room.channels.public.some((m) => /Quiet night/i.test(m.text)));
 
-// Second night: unanimous kill without block
+// Second night: kill without block
 room.systemSetPhase("talk");
 room.systemSetPhase("night");
 const bots2 = [...room.players.values()].filter((p) => p.kind === "bot" && p.alive);
